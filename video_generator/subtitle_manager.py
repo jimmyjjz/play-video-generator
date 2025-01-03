@@ -43,7 +43,6 @@ def section_words(words_and_stamps: list, split_threshold: float = 1.25) -> list
         sectioned_subtitles.append((s, e, "".join(words).lstrip()))
     return sectioned_subtitles
 
-
 # ==================================================TESTING==================================================
 li = speech_to_text("0_0.wav", "medium")
 li = section_words(li, 1.25)
