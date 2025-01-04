@@ -1,3 +1,6 @@
 {
-  "manual": false
+  "manual": false,
+  "debug": true,
+  "horizontal": 1080,
+  "vertical": 1920
 }

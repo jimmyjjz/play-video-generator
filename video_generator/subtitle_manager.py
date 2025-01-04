@@ -1,7 +1,6 @@
 from faster_whisper import WhisperModel
 import re
 
-
 def speech_to_text(audio_file_name: str, model_type: str) -> list:
     """
     Compute the timestamp of each word that is captured within a given audio file.
@@ -10,7 +9,7 @@ def speech_to_text(audio_file_name: str, model_type: str) -> list:
     :param model_type: whisper model type(tiny, small, medium, large)
     :return: timestamp of each word
     """
-    model = WhisperModel(model_type)  # use tiny for testing, large for product
+    model = WhisperModel(model_type)  # use medium for testing, large for product
     slots, info = model.transcribe(audio_file_name, word_timestamps=True)
     slots = list(slots)
     words_and_stamps = []
@@ -18,7 +17,6 @@ def speech_to_text(audio_file_name: str, model_type: str) -> list:
         for word in line.words:
             words_and_stamps.append((word.start, word.end, word.word))
     return words_and_stamps
-
 
 def section_words(words_and_stamps: list, split_threshold: float = 1.25) -> list:
     """

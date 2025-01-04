@@ -8,11 +8,12 @@ def create_speech(text:str, preset:str="ultra_fast", model_path:str="tts_models/
     tts = TTS(model_path).to(device)
     tts.tts_to_file(
         text=text,
-        file_path="0_1.wav",
-        voice_dir="speaker",#"C:\\Users\Bossy\PycharmProjects\Vid\speaker",
+        file_path="speech.wav",
+        voice_dir="speaker",
         speaker="test",
         preset=preset
-        )
+    )
+
 """
 preset list:
 single_sample
@@ -24,4 +25,5 @@ fast_old
 standard
 high_quality
 """
+# ==================================================TESTING==================================================
 create_speech("Hello John. Cool car Cole.",preset="high_quality")
