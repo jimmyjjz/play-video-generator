@@ -1,6 +1,7 @@
 {
   "manual": false,
-  "debug": true,
-  "horizontal": 1080,
-  "vertical": 1920
+  "debug": 1,
+  "horizontal": 1920,
+  "vertical": 1080,
+  "extension": 0.2
 }

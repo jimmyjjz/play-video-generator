@@ -1,5 +1,7 @@
 from faster_whisper import WhisperModel
+from moviepy import TextClip, concatenate_videoclips, VideoClip
 import re
+
 
 def speech_to_text(audio_file_name: str, model_type: str) -> list:
     """
@@ -31,18 +33,33 @@ def section_words(words_and_stamps: list, split_threshold: float = 1.25) -> list
     sectioned_subtitles = []
     s, e, words = 0, -1, []
     for v in words_and_stamps:
-        if v[1] - s >= split_threshold or re.search("[.,]", v[2]):
+        if v[1] - s >= split_threshold or re.search("[.,?!;]", v[2]):
             sectioned_subtitles.append((s, e, "".join(words).lstrip()))
             words = []
             s = e
-        words.append(re.sub("[.,]", "", v[2]))
+        words.append(re.sub("[.,?!;]", "", v[2]))
         e = v[1]
     if words:
         sectioned_subtitles.append((s, e, "".join(words).lstrip()))
     return sectioned_subtitles
 
+def sectioned_subtitles_to_subtitles(sectioned_subtitles:list)->VideoClip:
+    #I have observed so far that it is one after another
+    subtitle_list=[]
+    for ss in sectioned_subtitles:
+        subtitle_list.append(TextClip(
+            font='verdana',
+            text=ss[2],
+            font_size=40,
+            color='yellow',
+            duration=ss[1]-ss[0]
+        ))
+    return concatenate_videoclips(subtitle_list).with_position("center","center")
+
 # ==================================================TESTING==================================================
-li = speech_to_text("0_0.wav", "medium")
+'''
+li = speech_to_text("speech.wav", "medium")
 li = section_words(li, 1.25)
 # test with 1sec
 print(li)
+'''

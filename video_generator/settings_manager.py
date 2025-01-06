@@ -25,10 +25,11 @@ def default_settings()->None:
     global data
     data={
         "manual":True,
-        "debug":True,#change to false when project not in development
+        "debug":1,#change to 0 when project not in development
         "horizontal":1080,
-        "vertical":1920
+        "vertical":1920,
+        "extension":0.2
     }
 
 # ==================================================TESTING==================================================
-set_setting("manual",False)
+# set_setting("manual",False)

@@ -106,6 +106,7 @@ class Animateable(object):
         self.clip = self.clip.rotated(partial(self.animate, op="rotation"))
 
 # ==================================================TESTING==================================================
+'''
 full_video = VideoFileClip("test_video.mkv")
 vid=full_video.subclipped(10,15)
 #ic=[ImageClip("krimdus_emotion_package\krimdus_neutral.png", duration=vid.duration)]
@@ -124,3 +125,4 @@ final_product=CompositeVideoClip([vid, krimdus.clip])
 final_product.write_videofile("outputted_test_video.mp4", preset='ultrafast', fps = 60)
 
 #changing opacity
+'''
