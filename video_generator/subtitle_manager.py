@@ -3,7 +3,7 @@ from moviepy import TextClip, concatenate_videoclips, VideoClip
 import re
 
 
-def speech_to_text(audio_file_name: str, model_type: str) -> list:
+def speech_to_text(audio_file_name: str, model_type: str="medium") -> list:
     """
     Compute the timestamp of each word that is captured within a given audio file.
 
@@ -43,7 +43,7 @@ def section_words(words_and_stamps: list, split_threshold: float = 1.25) -> list
         sectioned_subtitles.append((s, e, "".join(words).lstrip()))
     return sectioned_subtitles
 
-def sectioned_subtitles_to_subtitles(sectioned_subtitles:list)->VideoClip:
+def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,start:float=0)->VideoClip:
     #I have observed so far that it is one after another
     subtitle_list=[]
     for ss in sectioned_subtitles:
@@ -54,7 +54,9 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list)->VideoClip:
             color='yellow',
             duration=ss[1]-ss[0]
         ))
-    return concatenate_videoclips(subtitle_list).with_position("center","center")
+    temp = concatenate_videoclips(subtitle_list).with_position("center","center")
+    temp.start=start
+    return temp
 
 # ==================================================TESTING==================================================
 '''

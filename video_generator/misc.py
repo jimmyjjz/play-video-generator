@@ -1,6 +1,74 @@
-from moviepy import VideoClip, ImageClip, concatenate_videoclips
+from moviepy import VideoClip, ImageClip, concatenate_videoclips, TextClip, AudioFileClip
+import re, audio_manager
 
-def generate_script_prompt(type_of_script:str, script_approx_length:int, topic:str, extra:str="")->str:
+def generate_script_prompt(content:str, min_word_count:int)->str:
+    return f'Generate a {content} script. Format into sentences that are separated with "|".\
+           Include only dialogue, "throwing" action, and change scene.\
+           Dialogue is in this format:<name>:<dialogue>. Throwing action in this format: <thing>-<speed>-<thrower name>-<target name>. \
+           List of things that can be thrown: mail, punch. List of throwing speeds: slow, fast. \
+           Change scene action is in the following format: <"change" the word>-<people entering(max 4) separated with comments>.\
+           Do not format into lines, make sure each line is right next to each other. Rarely use the throw action.\
+           Do not include anything else. Do not include start and end. 10 minute script. At least {min_word_count} words.\
+           Include list of all the characters in the second line in this format: gender-name1,gender-name2,gender-name3,...\
+           First line is the movie title.'
+
+def sequence_from_stamped(stamped:str, folder_path:str)->VideoClip:
+    sequence_guide=[]
+    for s in stamped.split(","):
+        splitted = s.split("|")
+        sequence_guide.append((splitted[0],splitted[1],splitted[3]))
+    if not sequence_guide:
+        raise ValueError("stamped is empty.")
+    sequence=[]
+    for i in range(len(sequence_guide)):
+        sequence.append(ImageClip(folder_path+"\\"+sequence_guide[i][2]+".png", duration=float(sequence_guide[i][1])))
+    return concatenate_videoclips(sequence)
+
+def script_to_characters(script:str)->list:
+    splitted=script.split("|")
+    return splitted[1].split(",")
+
+def script_to_title(script:str)->str:
+    splitted=script.split("|")
+    return splitted[0]
+
+def script_to_dialogues(script:str)->list:
+    splitted = script.split("|")
+    dialogues=[]
+    for v in splitted:
+        if re.search(":",v):
+            dialogues.append(v)
+    return dialogues
+
+def script_to_sequence(script:str)->list:
+    splitted = script.split("|")
+    sequence=splitted[2:]
+    for i in range(len(sequence)):
+        s=sequence[i].split("-")
+        match len(s):
+            case 1:#dialogue
+                sequence[i] = "d"+str(i)+sequence[i]
+            case 2:#change scene
+                sequence[i] = "c"+sequence[i]
+            case 3:#throw
+                sequence[i] = "t"+sequence[i]
+    return sequence
+
+def create_title(title:str):
+    audio_manager.create_speech(title,"test",title)
+    tmp_a=AudioFileClip(title+".wav")
+    temp=TextClip(
+        font='verdana',
+        text=title,
+        font_size=120,
+        color='yellow',
+        duration=tmp_a.duration
+    ).with_position("center","center")
+    temp.audio=tmp_a
+    return temp
+
+#========================= old prompt generators =========================
+def generate_script_prompt_old(type_of_script:str, script_approx_length:int, topic:str, extra:str="")->str:
     return f"Make a {script_approx_length} second {type_of_script} script on a review on {topic}. Do not format them into blocks. Do not use apostrophes."+extra#Make the the script includes a rating({rating} out of 10) at the end.
 
 def generate_status_prompt(obj:str, words_and_stamps:list)->str:
@@ -23,18 +91,3 @@ def generate_selection_prompt(content:str, clips_from:str, clip_time:int, total_
         return f"Draw up {content} using clips from {clips_from} that do not surpass {clip_time} seconds in the following format:\
                time_in_seconds_clip_one_start-time_in_seconds_clip_one_end_time, time_in_seconds_clip_two_start-time_in_seconds_clip_two_end_time...\
                Do not write words beyond the format stated above. Given the timestamped script(extra content to work with):{coordinating_subtitle}."
-
-def sequence_from_stamped(stamped:str, folder_path:str)->VideoClip:
-    sequence_guide=[]
-    for s in stamped.split(","):
-        splitted = s.split("|")
-        sequence_guide.append((splitted[0],splitted[1],splitted[3]))
-    if not sequence_guide:
-        raise ValueError("stamped is empty.")
-    sequence=[]
-    for i in range(len(sequence_guide)):
-        sequence.append(ImageClip(folder_path+"\\"+sequence_guide[i][2]+".png", duration=float(sequence_guide[i][1])))
-    return concatenate_videoclips(sequence)
-
-
-
