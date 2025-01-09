@@ -24,11 +24,6 @@ def create_speech(text:str, speaker:str, output_name:str, preset:str="ultra_fast
         preset=preset
     )
 
-def dialogues_to_speech(dialogues:list)->None:
-    for i in range(len(dialogues)):
-        dialogue=dialogues[i].split(":")
-        create_speech(dialogue[1],voices[dialogue[0]],"speech\\"+str(i)+"_speech")
-
 def setup_voices(characters:list)->None:
     shuffle(male)
     shuffle(female)

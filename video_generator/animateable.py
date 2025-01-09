@@ -6,7 +6,7 @@ class Animateable(object):
     # Only VideoClip and its children are supported
     # rotation is currently is "boxed" and transparent pixels are turned black
 
-    def animate(self, t, op:int):
+    def animate(self, t, op:int):#maybe raise exception if not established
         try:
             while self.timed_modifications[op][self.current_index[op]+1][0]<t:
                 self.current_index[op]+=1

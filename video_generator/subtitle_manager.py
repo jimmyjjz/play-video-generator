@@ -54,7 +54,7 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,start:float=0)->Vi
             color='yellow',
             duration=ss[1]-ss[0]
         ))
-    temp = concatenate_videoclips(subtitle_list).with_position("center","center")
+    temp = concatenate_videoclips(subtitle_list)
     temp.start=start
     return temp
 

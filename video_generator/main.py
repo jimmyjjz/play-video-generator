@@ -1,9 +1,12 @@
 import math
 
-from moviepy import VideoFileClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip
+from moviepy import VideoFileClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips
 import audio_manager, subtitle_manager, settings_manager, bg_video_manager, misc
 import debug#possible thing that happens is that when importing the py file runs
+import scene_manager
 from animateable import Animateable
+
+test_bg_video=VideoFileClip("orange_juice_video.mp4").subclipped(50,57).without_audio()
 
 #IGNORE YELLOW UNDERLINES
 if settings_manager.get_setting("debug")==0:
@@ -13,21 +16,26 @@ if settings_manager.get_setting("debug")==1:
     print("DEBUG 1")
     with open("script.txt","r") as f:
         script=f.read()
-    #
-    audio_manager.setup_voices_with_script(script)
-    audio_manager.dialogues_to_speech(misc.script_to_dialogues(script))
-    #
-    #audio_manager.create_speech(script)
-    #text=subtitle_manager.speech_to_text("speech.wav", "medium")
 elif settings_manager.get_setting("debug")==2:
     print("DEBUG 2")
     print(misc.generate_script_prompt("roblox story video", 1000))
     script = input("Input script output from GPT:")
-    audio_manager.setup_voices_with_script(script)
-    audio_manager.dialogues_to_speech(misc.script_to_dialogues(script))
 else:
     pass
 
+audio_manager.setup_voices_with_script(script)
+sectioned_sequence=misc.section_sequence(misc.script_to_sequence(script,False))#True if need to create the speech files
+
+#[['cchange-Alex,Luna', 'd1Luna:Good idea.', 'tmail-fast-Alex-Luna'], ['cchange-Jack,Sophia', 'd4Jack:Sophia, the map says we need to find three keys.']]
+scene_manager.setup_characters(misc.script_to_characters(script))
+scenes=[scene_manager.create_title(misc.script_to_title(script),False)]#True if need to create the speech file
+
+for e in sectioned_sequence:
+    scenes.append(scene_manager.create_scene(e))
+
+final_product=CompositeVideoClip([test_bg_video,concatenate_videoclips(scenes).with_position("center")])
+final_product.write_videofile("outputted_test_video.mp4", preset='ultrafast', fps=60)#mp4 for testing
+'''
 #+==================================================================================================================
 #speech to text
 sectioned_text=subtitle_manager.section_words(text)
@@ -53,3 +61,4 @@ final_product.write_videofile("outputted_test_video.mp4", preset='ultrafast', fp
 #need title
 print("End")
 #when creating front end make it so the user can select the model_type
+'''

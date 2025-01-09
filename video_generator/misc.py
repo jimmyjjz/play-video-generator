@@ -32,40 +32,45 @@ def script_to_title(script:str)->str:
     splitted=script.split("|")
     return splitted[0]
 
-def script_to_dialogues(script:str)->list:
-    splitted = script.split("|")
-    dialogues=[]
-    for v in splitted:
-        if re.search(":",v):
-            dialogues.append(v)
-    return dialogues
-
-def script_to_sequence(script:str)->list:
+def script_to_sequence(script:str, create_speech:bool=True)->list:
     splitted = script.split("|")
     sequence=splitted[2:]
     for i in range(len(sequence)):
         s=sequence[i].split("-")
         match len(s):
             case 1:#dialogue
+                if create_speech:
+                    dialogue = sequence[i].split(":")
+                    audio_manager.create_speech(dialogue[1], audio_manager.voices[dialogue[0]], str(i) + "_speech")
                 sequence[i] = "d"+str(i)+sequence[i]
             case 2:#change scene
                 sequence[i] = "c"+sequence[i]
-            case 3:#throw
+            case 4:#throw
                 sequence[i] = "t"+sequence[i]
+            case _:
+                raise ValueError("invalid element of sequence")
     return sequence
 
-def create_title(title:str):
-    audio_manager.create_speech(title,"test",title)
-    tmp_a=AudioFileClip(title+".wav")
-    temp=TextClip(
-        font='verdana',
-        text=title,
-        font_size=120,
-        color='yellow',
-        duration=tmp_a.duration
-    ).with_position("center","center")
-    temp.audio=tmp_a
-    return temp
+def section_sequence(seq:list)->list:
+    sectioned_sequence=[]
+    accu=[]
+    for s in seq:
+        if s[0]=='c':
+            if accu:
+                sectioned_sequence.append(accu)
+            accu=[]
+        accu.append(s)
+    sectioned_sequence.append(accu)
+    return sectioned_sequence
+
+def create_transparent_image(duration:float):#1920x1080
+    img = ImageClip("assets\\compulsory\\white.png",transparent=False, duration=duration)
+    img.mask=ImageClip("assets\\compulsory\\black.png",is_mask=True)
+    return img
+
+def cpos_to_rpos(size:tuple, cpos:tuple):#center pos to real pos
+    #size w,h. cpos x,y
+    return cpos[0]-size[0]/2,cpos[1]-size[1]/2
 
 #========================= old prompt generators =========================
 def generate_script_prompt_old(type_of_script:str, script_approx_length:int, topic:str, extra:str="")->str:

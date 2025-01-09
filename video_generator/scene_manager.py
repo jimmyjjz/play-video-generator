@@ -5,13 +5,23 @@ import re, audio_manager
 
 import subtitle_manager, misc
 from animateable import Animateable
+from misc import create_transparent_image
 
-fb,pw,ph,spv=100, 160, 320, 150#from border, picture width, picture height, subtitle position value
-four_formation=((fb,fb),(1920-fb-pw,1080-fb-ph),(fb,1080-fb-ph),(1920-fb-pw,fb)),((fb+spv,fb),(1920-fb-pw-spv,1080-fb-ph),(fb+spv,1080-fb-ph),(1920-fb-pw-spv,fb))
-three_formation=(1920-fb-pw,1080-fb-ph),(fb,1080-fb-ph),(1920/2-pw/2,fb/4),((1920-fb-pw-spv,1080-fb-ph),(fb+spv,1080-fb-ph),(1920/2-pw/2,fb/4+spv/2))
-two_formation=((1920/2+ph/2-fb/2,1080/2+ph/2),(1920/2+ph/2+fb/2,1080/2+ph/2)),((1920/2+ph/2-fb/2-spv,1080/2+ph/2),(1920/2+ph/2+fb/2+spv,1080/2+ph/2))
+fb,pw,ph,spv=100, 160, 320, 100#from border, picture width, picture height, subtitle position value
+#four_formation=((fb,fb),(1920-fb-pw,1080-fb-ph),(fb,1080-fb-ph),(1920-fb-pw,fb)),((fb+spv,fb),(1920-fb-pw-spv,1080-fb-ph),(fb+spv,1080-fb-ph),(1920-fb-pw-spv,fb))
+#three_formation=(1920-fb-pw,1080-fb-ph),(fb,1080-fb-ph),(1920/2-pw/2,fb/4),((1920-fb-pw-spv,1080-fb-ph),(fb+spv,1080-fb-ph),(1920/2-pw/2,fb/4+spv/2))
+two_formation=((fb,1080/2-ph/2),(1920-fb-pw,1080/2-ph/2)),((fb+pw+spv,1080/2),(1920-fb-pw-spv,1080/2))
 one_formation=(1920/2+ph/2,1080/2+ph/2),(1920/2+ph/2,1080/2+ph/2+spv/2)
 
+'''
+o-----+
+|     |
+|     |
+|     |
++-----+
+o is where pos is
+'''
+#instead of spv why not just find w and h and use the other thing
 fs,ss=0.5,2#fast speed, slow speed
 characters={}
 male=["yellow","blue"]
@@ -29,7 +39,7 @@ def create_scene(seq:list):
         mapped_positions[names[i]]=i
     match len(names):
         case 1:
-            a1=Animateable(ImageClip(characters[names[0]]+".png"),one_formation[0][0],one_formation[0][1])
+            a1=Animateable(ImageClip("assets\\"+characters[names[0]]+".png"),one_formation[0][0],one_formation[0][1])
             for i in range(1,len(seq)):
                 if seq[i][0]=='d':
                     words_li=subtitle_manager.section_words(subtitle_manager.speech_to_text("speech\\"+seq[i][1]+"_speech.wav"))
@@ -37,7 +47,7 @@ def create_scene(seq:list):
                     accumulant.append(subtitle)
                 elif seq[i][0]=='t':
                     details=seq[1:].split("-")
-                    throwable=Animateable(ImageClip(details[0]+".png"),one_formation[0][0],one_formation[0][1])
+                    throwable=Animateable(ImageClip("assets\\"+details[0]+".png"),one_formation[0][0],one_formation[0][1])
                     if details[1]=='slow':
                         throwable.queue_smooth_move(0, ss/2, one_formation[0][0],one_formation[0][1],one_formation[0][0],fb)
                         throwable.queue_smooth_move(0, ss/2, one_formation[0][0], one_formation[0][1], one_formation[0][0], one_formation[0][1])
@@ -48,31 +58,40 @@ def create_scene(seq:list):
                         raise ValueError("not a valid throw speed")
                     throwable.establish()
                     accumulant.append(throwable.clip)
-            return CompositeVideoClip([a1,concatenate_videoclips(accumulant)])
+            return CompositeVideoClip([a1.clip,concatenate_videoclips(accumulant)])
         case 2:
-            a1 = Animateable(ImageClip(characters[names[0]]+".png"), two_formation[0][0][0], two_formation[0][0][1])
-            a2 = Animateable(ImageClip(characters[names[1]]+".png"), two_formation[0][1][0], two_formation[0][1][1])
             for i in range(1, len(seq)):
                 if seq[i][0] == 'd':
                     words = seq[i][2:].split(":")
                     words_li = subtitle_manager.section_words(subtitle_manager.speech_to_text("speech\\" + seq[i][1] + "_speech.wav"))
                     idx=mapped_positions[words[0]]
-                    subtitle = subtitle_manager.sectioned_subtitles_to_subtitles(words_li).with_position(two_formation[1][idx][0], two_formation[1][idx][1])
-                    accumulant.append(subtitle)
+                    subtitle = subtitle_manager.sectioned_subtitles_to_subtitles(words_li)
+                    subtitle=subtitle.with_position(misc.cpos_to_rpos((subtitle.w,subtitle.h),(two_formation[1][idx][0], two_formation[1][idx][1])))
+                    subtitle.audio=AudioFileClip("speech\\" + seq[i][1] + "_speech.wav")
+                    accumulant.append(CompositeVideoClip([misc.create_transparent_image(subtitle.duration),subtitle]))#.with_position("center"))
                 elif seq[i][0] == 't':
-                    details = seq[1:].split("-")
-                    throwable = Animateable(ImageClip(details[0] + ".png"), two_formation[0][mapped_positions[details[2]]][0], two_formation[0][mapped_positions[details[2]]][1])
+                    details = seq[i][1:].split("-")
                     if details[1] == 'slow':
-                        throwable.queue_smooth_move(0, ss, two_formation[0][mapped_positions[details[2]]][0], two_formation[0][mapped_positions[details[2]]][1],
-                                                    two_formation[0][mapped_positions[details[3]]][0], two_formation[0][mapped_positions[details[3]]][1])
+                        spd=ss
                     elif details[1] == 'fast':
-                        throwable.queue_smooth_move(0, fs, two_formation[0][mapped_positions[details[2]]][0], two_formation[0][mapped_positions[details[2]]][1],
-                                                    two_formation[0][mapped_positions[details[3]]][0], two_formation[0][mapped_positions[details[3]]][1])
+                        spd=fs
                     else:
                         raise ValueError("not a valid throw speed")
+                    throwable = Animateable(ImageClip("assets\\" + details[0] + ".png", duration=spd), two_formation[0][mapped_positions[details[2]]][0],
+                                            two_formation[0][mapped_positions[details[2]]][1])
+                    throwable.queue_smooth_move(0, spd, two_formation[0][mapped_positions[details[2]]][0], two_formation[0][mapped_positions[details[2]]][1],
+                                                two_formation[0][mapped_positions[details[3]]][0], two_formation[0][mapped_positions[details[3]]][1])
                     throwable.establish()
-                    accumulant.append(throwable.clip)
-            return CompositeVideoClip([a1, a2, concatenate_videoclips(accumulant)])#might need to attach white and black
+                    accumulant.append(CompositeVideoClip([misc.create_transparent_image(spd),throwable.clip]))#.with_position("center"))
+                else:
+                    raise ValueError("invalid sequence element")
+            accumulated=concatenate_videoclips(accumulant)
+            a1 = Animateable(ImageClip("assets\\"+characters[names[0]]+".png",duration=accumulated.duration), two_formation[0][0][0], two_formation[0][0][1])
+            a2 = Animateable(ImageClip("assets\\"+characters[names[1]]+".png",duration=accumulated.duration), two_formation[0][1][0], two_formation[0][1][1])
+            a1.establish()
+            a2.establish()
+            #return CompositeVideoClip([misc.create_transparent_image(accumulated.duration), a1.clip, a2.clip, accumulated])
+            return CompositeVideoClip([accumulated, a1.clip, a2.clip])
         case 3:
             pass
         case 4:
@@ -92,3 +111,20 @@ def setup_characters(ch:list)->None:
         else:#female. other genders are defaulted to female characters currently
             characters[character[1]] = female[f]
             f+=1
+
+def create_title(title:str, create_audio:bool=True):
+    if create_audio:
+        audio_manager.create_speech(title,"test",title)
+    try:
+        tmp_a=AudioFileClip("speech\\"+title+".wav")
+    except Exception:
+        raise Exception("some problem occurred, check if the audio_file exists.")
+    temp=TextClip(
+        font='verdana',
+        text=title,
+        font_size=120,
+        color='yellow',
+        duration=tmp_a.duration
+    ).with_position("center","center")
+    temp.audio=tmp_a
+    return temp
