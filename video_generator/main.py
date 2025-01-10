@@ -6,7 +6,7 @@ import debug#possible thing that happens is that when importing the py file runs
 import scene_manager
 from animateable import Animateable
 
-test_bg_video=VideoFileClip("orange_juice_video.mp4").subclipped(50,57).without_audio()
+test_bg_video=VideoFileClip("orange_juice_video.mp4").subclipped(50,62).without_audio()
 
 #IGNORE YELLOW UNDERLINES
 if settings_manager.get_setting("debug")==0:

@@ -2,6 +2,8 @@ from faster_whisper import WhisperModel
 from moviepy import TextClip, concatenate_videoclips, VideoClip
 import re
 
+from animateable import Animateable
+
 
 def speech_to_text(audio_file_name: str, model_type: str="medium") -> list:
     """
@@ -47,16 +49,25 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,start:float=0)->Vi
     #I have observed so far that it is one after another
     subtitle_list=[]
     for ss in sectioned_subtitles:
-        subtitle_list.append(TextClip(
+        temp=TextClip(
             font='verdana',
+            stroke_width=5,
+            stroke_color='black',
             text=ss[2],
-            font_size=40,
+            font_size=50,
             color='yellow',
             duration=ss[1]-ss[0]
-        ))
+        )
+        temp.size=(temp.size[0],temp.size[1]+10)
+        subtitle_list.append(temp)
     temp = concatenate_videoclips(subtitle_list)
     temp.start=start
     return temp
+
+def bounce(subtitle:Animateable):#bounce effect
+    w,h=subtitle.clip.w,subtitle.clip.h
+    #find ratio h/w
+    subtitle.queue_scale(0,0.05,w)
 
 # ==================================================TESTING==================================================
 '''

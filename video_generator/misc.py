@@ -5,8 +5,9 @@ def generate_script_prompt(content:str, min_word_count:int)->str:
     return f'Generate a {content} script. Format into sentences that are separated with "|".\
            Include only dialogue, "throwing" action, and change scene.\
            Dialogue is in this format:<name>:<dialogue>. Throwing action in this format: <thing>-<speed>-<thrower name>-<target name>. \
-           List of things that can be thrown: mail, punch. List of throwing speeds: slow, fast. \
-           Change scene action is in the following format: <"change" the word>-<people entering(max 4) separated with comments>.\
+           List of things that can be thrown: mail, attack. List of throwing speeds: slow, fast. \
+           Change scene action is in the following format: <"change" the word>-<people entering(max 4) separated with commas>\
+           \-<setting of the scene(keep it under 7 words)>.\
            Do not format into lines, make sure each line is right next to each other. Rarely use the throw action.\
            Do not include anything else. Do not include start and end. 10 minute script. At least {min_word_count} words.\
            Include list of all the characters in the second line in this format: gender-name1,gender-name2,gender-name3,...\
@@ -43,7 +44,7 @@ def script_to_sequence(script:str, create_speech:bool=True)->list:
                     dialogue = sequence[i].split(":")
                     audio_manager.create_speech(dialogue[1], audio_manager.voices[dialogue[0]], str(i) + "_speech")
                 sequence[i] = "d"+str(i)+sequence[i]
-            case 2:#change scene
+            case 3:#change scene
                 sequence[i] = "c"+sequence[i]
             case 4:#throw
                 sequence[i] = "t"+sequence[i]
