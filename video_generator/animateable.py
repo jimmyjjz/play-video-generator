@@ -13,7 +13,9 @@ class Animateable(object):
         except IndexError:pass
         if op=="position":
             if self.timed_modifications[op][self.current_index[op]][4]:
-                return self.most_recent_pos[0]+self.timed_modifications[op][self.current_index[op]][2],self.most_recent_pos[1]+self.timed_modifications[op][self.current_index[op]][3]
+                tmp=self.most_recent_pos[0]+self.timed_modifications[op][self.current_index[op]][2],self.most_recent_pos[1]+self.timed_modifications[op][self.current_index[op]][3]
+                self.most_recent_pos = tmp
+                return tmp
             a, b=self.timed_modifications[op][self.current_index[op]][2],self.timed_modifications[op][self.current_index[op]][3]
             if a == -99:
                 a = self.most_recent_pos[0]
@@ -23,7 +25,9 @@ class Animateable(object):
             return a, b
         if op=="scale":
             if self.timed_modifications[op][self.current_index[op]][4]:
-                return self.most_recent_size[0]+self.timed_modifications[op][self.current_index[op]][2],self.most_recent_size[1]+self.timed_modifications[op][self.current_index[op]][3]
+                tmp=self.most_recent_size[0]+self.timed_modifications[op][self.current_index[op]][2],self.most_recent_size[1]+self.timed_modifications[op][self.current_index[op]][3]
+                self.most_recent_size = tmp
+                return tmp
             a, b = self.timed_modifications[op][self.current_index[op]][2],self.timed_modifications[op][self.current_index[op]][3]
             if a == -99:
                 a = self.most_recent_size[0]
@@ -33,6 +37,7 @@ class Animateable(object):
             return a, b
         if op=="rotation":
             if self.timed_modifications[op][self.current_index[op]][3]:
+                self.most_recent_rotation+=self.timed_modifications[op][self.current_index[op]][2]
                 return self.most_recent_rotation+self.timed_modifications[op][self.current_index[op]][2]
             if self.timed_modifications[op][self.current_index[op]][2]==-99:
                 return self.most_recent_rotation

@@ -2,6 +2,8 @@ from faster_whisper import WhisperModel
 from moviepy import TextClip, concatenate_videoclips, VideoClip
 import re
 
+from sympy.physics.optics import lens_makers_formula
+
 from animateable import Animateable
 
 
@@ -22,7 +24,7 @@ def speech_to_text(audio_file_name: str, model_type: str="medium") -> list:
             words_and_stamps.append((word.start, word.end, word.word))
     return words_and_stamps
 
-def section_words(words_and_stamps: list, split_threshold: float = 1.25) -> list:
+def section_words(words_and_stamps: list, split_threshold: float = 0.75) -> list:
     """
     Section word and timestamps that are given are treated in a sentence-by-sentence fashion
     with each sentence sectioned into the biggest sections of text that are read under a given time.
@@ -35,7 +37,7 @@ def section_words(words_and_stamps: list, split_threshold: float = 1.25) -> list
     sectioned_subtitles = []
     s, e, words = 0, -1, []
     for v in words_and_stamps:
-        if v[1] - s >= split_threshold or re.search("[.,?!;]", v[2]):
+        if words and (v[1] - s >= split_threshold or re.search("[.,?!;]", v[2])):
             sectioned_subtitles.append((s, e, "".join(words).lstrip()))
             words = []
             s = e
@@ -45,9 +47,11 @@ def section_words(words_and_stamps: list, split_threshold: float = 1.25) -> list
         sectioned_subtitles.append((s, e, "".join(words).lstrip()))
     return sectioned_subtitles
 
-def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,start:float=0)->VideoClip:
+def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,pos:tuple=(0,0))->VideoClip:
     #I have observed so far that it is one after another
     subtitle_list=[]
+    s,p=[],[]
+    t=0
     for ss in sectioned_subtitles:
         temp=TextClip(
             font='verdana',
@@ -59,15 +63,43 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,start:float=0)->Vi
             duration=ss[1]-ss[0]
         )
         temp.size=(temp.size[0],temp.size[1]+10)
+        if pulse:
+            b=bounce(temp.w, temp.h ,pos[0],pos[1],t)
+            s.extend(b[0])
+            p.extend(b[1])
+        t+=temp.duration
         subtitle_list.append(temp)
-    temp = concatenate_videoclips(subtitle_list)
-    temp.start=start
-    return temp
+    temp2 = Animateable(concatenate_videoclips(subtitle_list),pos[0],pos[1])
+    for tu in s:
+        temp2.queue_scale(tu[0],tu[1],tu[2],tu[3],tu[4])
+    for tu in p:
+        temp2.queue_move(tu[0],tu[1],tu[2],tu[3],tu[4])
+    temp2.establish()
+    return temp2.clip
 
-def bounce(subtitle:Animateable):#bounce effect
-    w,h=subtitle.clip.w,subtitle.clip.h
-    #find ratio h/w
-    subtitle.queue_scale(0,0.05,w)
+def bounce(w:int, h:int, x:int, y:int, t:int)->tuple:#bounce effect
+    a,b=0.02,8
+    s,p=[],[]
+    s.append((t, a, w, h, False))
+    p.append((t, a, x, y, False))
+    tot=a
+    while tot<=a*3:
+        w+=2*b
+        h+=h/w*2*b
+        x+=-1*b
+        y+=-h/w*b
+        s.append((t+tot,a,w,h,False))
+        p.append((t+tot, a, x, y, False))
+        tot+=a
+    while tot<=a*6:
+        w-=2*b
+        h-=h/w*2*b
+        x-=-1*b
+        y-=-h/w*b
+        s.append((t+tot,a,w,h,False))
+        p.append((t+tot, a, x, y, False))
+        tot += a
+    return s,p
 
 # ==================================================TESTING==================================================
 '''

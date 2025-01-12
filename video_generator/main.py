@@ -1,64 +1,38 @@
-import math
-
-from moviepy import VideoFileClip, CompositeVideoClip, AudioFileClip, CompositeAudioClip, concatenate_videoclips
-import audio_manager, subtitle_manager, settings_manager, bg_video_manager, misc
-import debug#possible thing that happens is that when importing the py file runs
-import scene_manager
-from animateable import Animateable
-
-test_bg_video=VideoFileClip("orange_juice_video.mp4").subclipped(50,62).without_audio()
-
+from moviepy import VideoFileClip, CompositeVideoClip, concatenate_videoclips
+import audio_manager,misc,scene_manager,settings_manager
 #IGNORE YELLOW UNDERLINES
-if settings_manager.get_setting("debug")==0:
-    raise Exception("currently not set up")
 
+bg_video=VideoFileClip("bgvid.mp4").without_audio()
+print("IF YOU HAVE NOT ALREADY. PROVIDE A BACKGROUND VIDEO AND NAME IT \"bgvid\"(must be mp4. mkv maybe supported soon).")
 if settings_manager.get_setting("debug")==1:
-    print("DEBUG 1")
+    print("DEBUG 1\nNo speech files will be made.")
     with open("script.txt","r") as f:
         script=f.read()
 elif settings_manager.get_setting("debug")==2:
-    print("DEBUG 2")
-    print(misc.generate_script_prompt("roblox story video", 1000))
+    print("DEBUG 2\n"+misc.generate_script_prompt("roblox story video", 1000))
     script = input("Input script output from GPT:")
 else:
-    pass
+    inp=input("1.Read (I)nput\n2.Read (F)ile\n3.(G)enerate prompt\nFile assumes that you have already added the GPT output into script.txt.\nEnter capital letter:")
+    if inp=="I":
+        print(misc.generate_script_prompt(input("Enter content:"), int(input("Enter min word count:"))))
+        script = input("Input script output from GPT:")
+    elif inp=="F":
+        with open("script.txt", "r") as f:
+            script = f.read()
+    elif inp=="G":
+        print(misc.generate_script_prompt(input("Enter content:"), int(input("Enter min word count:"))))
+        exit("Prompt given. Program terminated.")
+    else:
+        raise ValueError("INVALID INPUT")
 
 audio_manager.setup_voices_with_script(script)
-sectioned_sequence=misc.section_sequence(misc.script_to_sequence(script,False))#True if need to create the speech files
-
-#[['cchange-Alex,Luna', 'd1Luna:Good idea.', 'tmail-fast-Alex-Luna'], ['cchange-Jack,Sophia', 'd4Jack:Sophia, the map says we need to find three keys.']]
+sectioned_sequence=misc.section_sequence(misc.script_to_sequence(script,settings_manager.get_setting("debug")==0))
 scene_manager.setup_characters(misc.script_to_characters(script))
-scenes=[scene_manager.create_title(misc.script_to_title(script),False)]#True if need to create the speech file
+scenes=[scene_manager.create_title(misc.script_to_title(script),settings_manager.get_setting("debug")==0)]
 
 for e in sectioned_sequence:
     scenes.append(scene_manager.create_scene(e))
 
-final_product=CompositeVideoClip([test_bg_video,concatenate_videoclips(scenes).with_position("center")])
-final_product.write_videofile("outputted_test_video.mp4", preset='ultrafast', fps=60)#mp4 for testing
-'''
-#+==================================================================================================================
-#speech to text
-sectioned_text=subtitle_manager.section_words(text)
-bg_video_manager.output_to_timestamps(selection)
-
-if settings_manager.get_setting("debug"):
-    krimdus = Animateable(misc.sequence_from_stamped(statuses,"state_package"),
-                          settings_manager.get_setting("horizontal")/2-80,settings_manager.get_setting("vertical")/2+200)#ignore yellow underline
-    krimdus.add_with_stamped_actions(statuses)
-    krimdus.establish()
-    full_video = VideoFileClip("orange_juice_video.mp4")
-else:
-    pass
-
-subtitle=subtitle_manager.sectioned_subtitles_to_subtitles(subtitle_manager.section_words(text))
-bg_video=bg_video_manager.generate_bg_video(full_video,bg_video_manager.output_to_timestamps(selection)).without_audio()
-bg_video.audio = CompositeAudioClip([AudioFileClip("speech.wav")])
-final_product = CompositeVideoClip([bg_video, krimdus.clip, subtitle])
-final_product.write_videofile("outputted_test_video.mp4", preset='ultrafast', fps=60)
-
-#scene by scene
-#attach intro after video done
-#need title
-print("End")
-#when creating front end make it so the user can select the model_type
-'''
+fg=concatenate_videoclips(scenes).with_position("center")
+final_product=CompositeVideoClip([bg_video.subclipped(0,fg.duration),fg])
+final_product.write_videofile("outputted_test_video.mp4", preset='ultrafast', fps=50)#mp4 for testing
