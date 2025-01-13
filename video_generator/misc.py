@@ -7,16 +7,16 @@ from settings_manager import get_setting
 def generate_script_prompt(content:str, min_word_count:int)->str:
     return f'Generate a {content} script. Format into sentences that are separated with "|".\
            Include only dialogue, "throwing" action, and change scene.\
-           Dialogue is in this format:<name>:<dialogue>:<emotion>. List of emotions: thinking, ok, sad, angry, has_emotion_but_no_emoji_popup. Use neutral 90% of the time.\
+           Dialogue is in this format:<name(must be a character)>:<dialogue>:<emotion>. List of emotions: thinking, ok, sad, angry, has_emotion_but_no_emoji_popup. Use has_emotion_but_no_emoji_popup 90% of the time.\
            Throwing action in this format: <thing>-<speed>-<thrower name(must be a character)>-<target name(must be a character)>. \
            List of things that can be thrown: mail, attack. List of throwing speeds: slow, fast. \
-           Change scene action is in the following format: <"change" the word>-<people entering(max 4) separated with commas>\
-           \-<setting of the scene(keep it under 7 words)>.\
+           Change scene action is in the following format: <"change" the word>-<people entering(max 4) separated with commas\
+           . Characters not in this list cannot talk or do anything in this scene>-<setting of the scene(keep it under 7 words)>. \
            Do not format into lines, make sure each line is right next to each other. Rarely use the throw action.\
            Do not include anything else. Do not include start and end. 10 minute script. At least {min_word_count} words.\
            Include list of all the characters in the second line in this format: gender-name1,gender-name2,gender-name3,...\
            First line is the movie title. After each change scene there must be at least one dialogue or throw action. Make sure no space before and after |.\
-           Do not put | at the very end.'
+           Do not put | at the very end. Make sure all the people that are going to talk in a scene is in the change of that particular scene.'
 
 def sequence_from_stamped(stamped:str, folder_path:str)->VideoClip:
     sequence_guide=[]
@@ -38,7 +38,7 @@ def script_to_title(script:str)->str:
     splitted=script.split("|")
     return splitted[0]
 
-def script_to_sequence(script:str, create_speech:bool=True)->list:
+def script_to_sequence(script:str, create_speech:bool=True,create_speech_fast:bool=False)->list:
     splitted = script.split("|")
     sequence=splitted[2:]
     for i in range(len(sequence)):
@@ -47,8 +47,11 @@ def script_to_sequence(script:str, create_speech:bool=True)->list:
             case 1:#dialogue
                 if create_speech:
                     dialogue = sequence[i].split(":")
-                    audio_manager.create_speech(dialogue[1], audio_manager.voices[dialogue[0]], str(i) + "_speech",'high_quality' if get_setting("debug")==0 else 'ultra_fast')
-                sequence[i] = "d"+str(i)+sequence[i]
+                    if create_speech_fast:
+                        audio_manager.create_speech_fast(dialogue[1], audio_manager.voices[dialogue[0]], str(i) + "_speech")
+                    else:
+                        audio_manager.create_speech(dialogue[1], audio_manager.voices[dialogue[0]], str(i) + "_speech",'high_quality' if get_setting("debug")==2 else 'ultra_fast')
+                sequence[i] = "d"+str(i)+"###<>"+sequence[i]
             case 3:#change scene
                 sequence[i] = "c"+sequence[i]
             case 4:#throw

@@ -3,12 +3,20 @@ import audio_manager, subtitle_manager, misc, random
 from settings_manager import get_setting
 from animateable import Animateable
 
-fb,pw,ph,spv,tpaw,tpah=60,240,480,300,160,80#adjusment, from border, picture width, picture height, subtitle position value, throwable position adjustment width, throwable position adjustment height
+fb,pw,ph,spv,tpaw,tpah=60,240,480,30,160,80#adjusment, from border, picture width, picture height, subtitle position value, throwable position adjustment width, throwable position adjustment height
+'''
 formations=(
     (((1920/2-pw/2,1080/2-ph/2),),((1920/2+pw/2+spv,1080/2),)),
     (((fb,1080/2-ph/2),(1920-fb-pw,1080/2-ph/2)),((fb+pw+spv,1080/2),(1920-fb-pw-spv/2,1080/2))),
     (((1920/2-pw/2,1080/2-ph/2-fb*5),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),((1920/2+pw/2+spv,1080/2-fb*5),(fb+pw+spv,1080-fb-ph/2),(1920-fb-pw-spv/2,1080-fb-ph/2))),
     (((fb,fb),(1920-fb-pw,fb),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),((fb+pw+spv,fb+ph/2),(1920-fb-pw-spv/2,fb+ph/2),(fb+pw*+spv,1080-fb-ph/2),(1920-fb-pw-spv/2,1080-fb-ph/2))),
+)
+'''
+formations=(#True is left
+    (((1920/2-pw/2,1080/2-ph/2),),(True,)),
+    (((fb,1080/2-ph/2),(1920-fb-pw,1080/2-ph/2)),(True,False)),
+    (((1920/2-pw/2,1080/2-ph/2-fb*5),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),(True,True,False)),
+    (((fb,fb),(1920-fb-pw,fb),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),(True,False,True,False)),
 )
 '''
 o-----+
@@ -28,7 +36,7 @@ def create_scene(seq:list):
     if len(seq)<=1:
         raise ValueError("seq does not contain enough elements")
     scene_data=seq[0][1:].split("-")
-    mapped_positions,queued_emotions,et,names,title={},[],0,scene_data[1].split(","),create_title(scene_data[2],get_setting("debug")==0)
+    mapped_positions,queued_emotions,et,names,title={},[],0,scene_data[1].split(","),create_title(scene_data[2],get_setting("debug")==0,get_setting("create_speech_fast"))
     accumulant=[title]
     et+=accumulant[0].duration
     for i in range(len(names)):
@@ -37,14 +45,14 @@ def create_scene(seq:list):
     if 4<n or n<1:
         raise ValueError("invalid number of characters")
     for i in range(1, len(seq)):
-        #accumulant.append(misc.create_transparent_image(0.1))#delay
-        #et+=0.1
         if seq[i][0] == 'd':
-            words_li = subtitle_manager.section_words(subtitle_manager.speech_to_text("speech\\" + seq[i][1] + "_speech.wav",'large' if get_setting("debug")==0 else 'medium'))
-            splitted=seq[i][2:].split(":")
+            di = seq[i].split("###<>")
+            words_li = subtitle_manager.section_words(subtitle_manager.speech_to_text("speech\\" + di[0][1:] + "_speech.wav",'large' if get_setting("debug")==0 else 'medium'))
+            splitted=di[1].split(":")
             emotion,idx,tmp=splitted[2],mapped_positions[splitted[0]],subtitle_manager.sectioned_subtitles_to_subtitles(words_li,False)
-            subtitle = subtitle_manager.sectioned_subtitles_to_subtitles(words_li,True,misc.cpos_to_rpos((tmp.w, tmp.h), (formations[n-1][1][idx][0], formations[n-1][1][idx][1])))
-            subtitle.audio = AudioFileClip("speech\\" + seq[i][1] + "_speech.wav")
+            sp=(formations[n-1][0][idx][0] + (pw+spv if formations[n-1][1][idx] else -spv-tmp[1]), formations[n-1][0][idx][1]+ph/2-tmp[2]/2)
+            subtitle = subtitle_manager.sectioned_subtitles_to_subtitles(words_li,True,sp,formations[n-1][1][idx])[0]
+            subtitle.audio = AudioFileClip("speech\\" + di[0][1:] + "_speech.wav")
             if emotion != "has_emotion_but_no_emoji_popup":
                 queued_emotions.append((splitted[0],emotion,et,et+subtitle.duration))
             et+=subtitle.duration
@@ -66,7 +74,6 @@ def create_scene(seq:list):
                 start_y, end_y=formations[n-1][0][mapped_positions[details[2]]][1] + ph / 2,formations[n-1][0][mapped_positions[details[3]]][1] + ph / 2
             else:
                 start_y, end_y= formations[n - 1][0][mapped_positions[details[2]]][1] + (ph+tpah if d[1]==1 else tpah), formations[n-1][0][mapped_positions[details[3]]][1] + (tpah if d[1]==1 else ph+tpah)
-            #print("EEEEEEEEEEEE",d,start_x,end_x,start_y,end_y)
             throwable = Animateable(ImageClip("assets\\" + details[0] + ".png", duration=spd), start_x, start_y)
             throwable.queue_smooth_move(0, spd, start_x, start_y, end_x, end_y)
             throwable.establish()
@@ -74,7 +81,7 @@ def create_scene(seq:list):
             accumulant.append(CompositeVideoClip([misc.create_transparent_image(spd), throwable.clip]))
         else:
             raise ValueError("invalid sequence element")
-    accumulant.append(misc.create_transparent_image(0.1))  # delay
+        accumulant.append(misc.create_transparent_image(0.5))  # delay
     accumulated=concatenate_videoclips(accumulant)
     composition=[accumulated]
     for j in range(n):
@@ -113,9 +120,12 @@ def setup_characters(ch:list)->None:
             characters[character[1]] = female[f]
             f+=1
 
-def create_title(title:str, create_audio:bool=True):
+def create_title(title:str, create_audio:bool=True,create_speech_fast:bool=False):
     if create_audio:
-        audio_manager.create_speech(title,"test",title,'high_quality' if get_setting("debug")==0 else 'ultra_fast')
+        if create_speech_fast:
+            audio_manager.create_speech_fast(title, "test", title)
+        else:
+            audio_manager.create_speech(title,"test",title,'high_quality' if get_setting("debug")==2 else 'ultra_fast')
     try:
         tmp_a=AudioFileClip("speech\\"+title+".wav")
     except Exception:
@@ -123,7 +133,7 @@ def create_title(title:str, create_audio:bool=True):
     temp=TextClip(
         font='verdana',
         text=title,
-        font_size=120,
+        font_size=100,
         size=(1920,1080),
         color='aquamarine',
         stroke_width=5,

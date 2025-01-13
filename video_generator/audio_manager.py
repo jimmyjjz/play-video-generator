@@ -1,10 +1,19 @@
 from random import shuffle
+
 from TTS.api import TTS
-import torch, misc
+from tortoise.api_fast import TextToSpeech
+from tortoise.utils.audio import load_voice
+import torch, misc, torchaudio
+from tortoise.utils.audio import load_audio, load_voice, load_voices
 
 voices={"test":"test"}
 male=["apple","lemon","watermelon","grape","blueberry"]
 female=["banana","orange","peach","strawberry","cherry"]
+def create_speech_fast(text:str,speaker:str,output_name:str):
+    tts = TextToSpeech()
+    voice_samples, conditioning_latents = load_voice(speaker)
+    gen = tts.tts(text, voice_samples=voice_samples, conditioning_latents=conditioning_latents)
+    torchaudio.save("speech\\"+output_name+".wav", gen.squeeze(0).cpu(), 24000)
 
 def create_speech(text:str, speaker:str, output_name:str, preset:str="ultra_fast", model_path:str="tts_models/en/multi-dataset/tortoise-v2")->None:
     """
@@ -23,6 +32,14 @@ def create_speech(text:str, speaker:str, output_name:str, preset:str="ultra_fast
         speaker=speaker,
         preset=preset
     )
+'''
+def create_speech(text:str, speaker:str, output_name:str)->None:
+    print("\nIGNORE ALL WARNINGS AND ERRORS")
+    tts = TextToSpeech()
+    voice_samples, conditioning_latents = load_voice(speaker)
+    gen = tts.tts_with_preset(text, voice_samples=voice_samples, conditioning_latents=conditioning_latents, preset="ultra_fast")
+    torchaudio.save("speech\\"+output_name+".wav", gen.squeeze(0).cpu(), 24000)
+'''
 
 def setup_voices(characters:list)->None:
     shuffle(male)

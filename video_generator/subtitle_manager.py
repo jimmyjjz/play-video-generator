@@ -47,8 +47,9 @@ def section_words(words_and_stamps: list, split_threshold: float = 0.75) -> list
         sectioned_subtitles.append((s, e, "".join(words).lstrip()))
     return sectioned_subtitles
 
-def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,pos:tuple=(0,0))->VideoClip:
+def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,pos:tuple=(0,0),left:bool=True)->tuple:
     #I have observed so far that it is one after another
+    m,mh=0,0
     subtitle_list=[]
     s,p=[],[]
     t=0
@@ -60,13 +61,16 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,p
             text=ss[2],
             font_size=50,
             color='yellow',
+            horizontal_align='left'if left else'right',
             duration=ss[1]-ss[0]
         )
-        temp.size=(temp.size[0],temp.size[1]+10)
+        temp.size=(temp.size[0],temp.size[1]+20)
         if pulse:
             b=bounce(temp.w, temp.h ,pos[0],pos[1],t)
             s.extend(b[0])
             p.extend(b[1])
+        mh=max(mh,temp.h)
+        m=max(m,temp.w)
         t+=temp.duration
         subtitle_list.append(temp)
     temp2 = Animateable(concatenate_videoclips(subtitle_list),pos[0],pos[1])
@@ -75,7 +79,7 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,p
     for tu in p:
         temp2.queue_move(tu[0],tu[1],tu[2],tu[3],tu[4])
     temp2.establish()
-    return temp2.clip
+    return temp2.clip,m,mh
 
 def bounce(w:int, h:int, x:int, y:int, t:int)->tuple:#bounce effect
     a,b=0.02,8

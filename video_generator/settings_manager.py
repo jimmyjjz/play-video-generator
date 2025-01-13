@@ -24,11 +24,11 @@ def update_json()->None:
 def default_settings()->None:
     global data
     data={
-        "manual":True,
-        "debug":1,#change to 0 when project not in development
+        "manual":False,
+        "debug":0,#change to 0 when project not in development
         "horizontal":1080,
         "vertical":1920,
-        "extension":0.2
+        "create_speech_fast":False
     }
 
 # ==================================================TESTING==================================================
