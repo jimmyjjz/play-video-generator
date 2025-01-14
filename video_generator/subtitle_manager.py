@@ -64,7 +64,7 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,p
             horizontal_align='left'if left else'right',
             duration=ss[1]-ss[0]
         )
-        temp.size=(temp.size[0],temp.size[1]+20)
+        temp.size=(temp.size[0],temp.size[1]+40)
         if pulse:
             b=bounce(temp.w, temp.h ,pos[0],pos[1],t)
             s.extend(b[0])

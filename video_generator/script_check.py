@@ -8,7 +8,7 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
     characters=splitted[1].split(",")
     names=[]
     emotion_slot=['thinking', 'ok', 'sad', 'angry', 'has_emotion_but_no_emoji_popup']
-    throwables=['attack','mail']
+    throwables=['attack','mail','tree']
     throw_speeds=['fast','slow']
     fc,mc=0,0
     for c in characters:
@@ -57,6 +57,7 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
                         raise ValueError("A character in scene but not in character list")
                     characters_in_scene.append(c)
                 if len(characters_in_scene)>4:
+                    print(characters_in_scene)
                     print("Number of characters:",len(characters_in_scene))
                     raise ValueError("Too much characters in a scene")
             case 4:#t
@@ -86,9 +87,9 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
 def check_file_script(replace_GPT_aposthrophe:bool=True):
     with open("script.txt", 'r') as f:
         script = f.read()
-    check_script(script)
     if replace_GPT_aposthrophe:
         with open("script.txt", 'w') as f:
             f.write(script.replace("â€™","'"))
+    check_script(script)
 
 check_file_script()

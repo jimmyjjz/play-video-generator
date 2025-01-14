@@ -4,7 +4,7 @@ import script_check,time
 from settings_manager import get_setting
 
 #IGNORE YELLOW UNDERLINES
-print("IF YOU HAVE NOT ALREADY. PROVIDE A BACKGROUND VIDEO AND NAME IT \"bgvid\"(must be mp4. mkv maybe supported soon).")
+print("IF YOU HAVE NOT ALREADY, PROVIDE A BACKGROUND VIDEO AND NAME IT \"bgvid\"(must be mp4. mkv maybe supported soon).")
 if get_setting("debug")==1:
     print("DEBUG 1\nNo speech files will be made.")
     with open("script.txt","r") as f:
@@ -20,6 +20,7 @@ else:
         print(misc.generate_script_prompt(input("Enter content:"), int(input("Enter min word count:"))))
         script = input("Input script output from GPT:")
     elif inp=="F":
+        print("Recommended to run script_check.py a few times before going further. Terminate the program if you want to do so.")
         with open("script.txt", "r") as f:
             script = f.read()
             script_check.check_script(script)
@@ -38,10 +39,13 @@ scenes=[scene_manager.create_title(misc.script_to_title(script),get_setting("deb
 
 for e in sectioned_sequence:
     scenes.append(scene_manager.create_scene(e))
+    print("Created a scene", e)
 
 fg=concatenate_videoclips(scenes).with_position("center")
 bg_video=VideoFileClip("bgvid.mp4").without_audio()
 final_product=CompositeVideoClip([bg_video.subclipped(0,fg.duration),fg])
-final_product.write_videofile("outputted_test_video.mp4", preset='ultrafast', fps=50)
+print("Making output video")
+final_product.write_videofile("outputted_video.mp4", preset='ultrafast', fps=50, threads=14)
 
 print("Process took:",time.time()-st,"seconds")
+#12753.87342453003 seconds for 10 min 54 sec vid

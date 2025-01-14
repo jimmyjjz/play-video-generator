@@ -17,6 +17,7 @@ formations=(#True is left
     (((fb,1080/2-ph/2),(1920-fb-pw,1080/2-ph/2)),(True,False)),
     (((1920/2-pw/2,1080/2-ph/2-fb*5),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),(True,True,False)),
     (((fb,fb),(1920-fb-pw,fb),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),(True,False,True,False)),
+    (((fb,fb),(1920-fb-pw,fb),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb),(1920/2-pw/2,1080/2-ph/2)),(True,False,True,False,True)),#5 formation not in use currently
 )
 '''
 o-----+
@@ -29,8 +30,8 @@ o is where pos is
 fs,ss=0.5,2#fast speed, slow speed
 characters={}
 emotion_location={"microwave":(42,42),"mixer":(66,79),"pot":(67,67),"skillet":(67,67),"spatula":(67,67),"dishwasher":(50,66),"stove":(74,89),"oven":(58,64),"whisk":(73,65),"toaster":(74,89)}
-male=["microwave","mixer","pot","skillet","spatula"]
-female=["dishwasher","stove","oven","whisk","toaster"]
+male=["microwave","mixer","pot","skillet","spatula","knife","pan","vent"]
+female=["dishwasher","stove","oven","whisk","toaster","bowl","faucet","sink"]
 
 def create_scene(seq:list):
     if len(seq)<=1:
@@ -82,6 +83,7 @@ def create_scene(seq:list):
         else:
             raise ValueError("invalid sequence element")
         accumulant.append(misc.create_transparent_image(0.5))  # delay
+        et+=0.5
     accumulated=concatenate_videoclips(accumulant)
     composition=[accumulated]
     for j in range(n):

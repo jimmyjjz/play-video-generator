@@ -9,9 +9,9 @@ def generate_script_prompt(content:str, min_word_count:int)->str:
            Include only dialogue, "throwing" action, and change scene.\
            Dialogue is in this format:<name(must be a character)>:<dialogue>:<emotion>. List of emotions: thinking, ok, sad, angry, has_emotion_but_no_emoji_popup. Use has_emotion_but_no_emoji_popup 90% of the time.\
            Throwing action in this format: <thing>-<speed>-<thrower name(must be a character)>-<target name(must be a character)>. \
-           List of things that can be thrown: mail, attack. List of throwing speeds: slow, fast. \
+           List of things that can be thrown: mail, attack, tree. List of throwing speeds: slow, fast. \
            Change scene action is in the following format: <"change" the word>-<people entering(max 4) separated with commas\
-           . Characters not in this list cannot talk or do anything in this scene>-<setting of the scene(keep it under 7 words)>. \
+           . Characters not in this list cannot talk or do anything in this scene>-<setting of the scene(keep it under 5 words)>. \
            Do not format into lines, make sure each line is right next to each other. Rarely use the throw action.\
            Do not include anything else. Do not include start and end. 10 minute script. At least {min_word_count} words.\
            Include list of all the characters in the second line in this format: gender-name1,gender-name2,gender-name3,...\
