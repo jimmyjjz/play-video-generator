@@ -1,17 +1,12 @@
 from moviepy import ImageClip, concatenate_videoclips, TextClip, AudioFileClip, CompositeVideoClip
 import audio_manager, subtitle_manager, misc, random
+import tti_manager
 from settings_manager import get_setting
 from animateable import Animateable
 
 fb,pw,ph,spv,tpaw,tpah=60,240,480,30,160,80#adjusment, from border, picture width, picture height, subtitle position value, throwable position adjustment width, throwable position adjustment height
-'''
-formations=(
-    (((1920/2-pw/2,1080/2-ph/2),),((1920/2+pw/2+spv,1080/2),)),
-    (((fb,1080/2-ph/2),(1920-fb-pw,1080/2-ph/2)),((fb+pw+spv,1080/2),(1920-fb-pw-spv/2,1080/2))),
-    (((1920/2-pw/2,1080/2-ph/2-fb*5),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),((1920/2+pw/2+spv,1080/2-fb*5),(fb+pw+spv,1080-fb-ph/2),(1920-fb-pw-spv/2,1080-fb-ph/2))),
-    (((fb,fb),(1920-fb-pw,fb),(fb,1080-ph-fb),(1920-fb-pw,1080-ph-fb)),((fb+pw+spv,fb+ph/2),(1920-fb-pw-spv/2,fb+ph/2),(fb+pw*+spv,1080-fb-ph/2),(1920-fb-pw-spv/2,1080-fb-ph/2))),
-)
-'''
+sw=600
+
 formations=(#True is left
     (((1920/2-pw/2,1080/2-ph/2),),(True,)),
     (((fb,1080/2-ph/2),(1920-fb-pw,1080/2-ph/2)),(True,False)),
@@ -29,7 +24,11 @@ o is where pos is
 '''
 fs,ss=0.5,2#fast speed, slow speed
 characters={}
-emotion_location={"microwave":(42,42),"mixer":(66,79),"pot":(67,67),"skillet":(67,67),"spatula":(67,67),"dishwasher":(50,66),"stove":(74,89),"oven":(58,64),"whisk":(73,65),"toaster":(74,89)}
+emotion_location={"microwave":(42,42),"mixer":(66,79),"pot":(67,67),"skillet":(67,67),"spatula":(67,67),
+                  "dishwasher":(50,66),"stove":(74,89),"oven":(58,64),"whisk":(73,65),"toaster":(74,89),
+                  "bowl":(66,106),"sink":(66,76),"faucet":(71,60),"vent":(66,63),"knife":(52,108),"pan":(66,99)
+                  }
+#add emotion location
 male=["microwave","mixer","pot","skillet","spatula","knife","pan","vent"]
 female=["dishwasher","stove","oven","whisk","toaster","bowl","faucet","sink"]
 
@@ -50,9 +49,9 @@ def create_scene(seq:list):
             di = seq[i].split("###<>")
             words_li = subtitle_manager.section_words(subtitle_manager.speech_to_text("speech\\" + di[0][1:] + "_speech.wav",'large' if get_setting("debug")==0 else 'medium'))
             splitted=di[1].split(":")
-            emotion,idx,tmp=splitted[2],mapped_positions[splitted[0]],subtitle_manager.sectioned_subtitles_to_subtitles(words_li,False)
-            sp=(formations[n-1][0][idx][0] + (pw+spv if formations[n-1][1][idx] else -spv-tmp[1]), formations[n-1][0][idx][1]+ph/2-tmp[2]/2)
-            subtitle = subtitle_manager.sectioned_subtitles_to_subtitles(words_li,True,sp,formations[n-1][1][idx])[0]
+            emotion,idx=splitted[2],mapped_positions[splitted[0]]
+            sp=(formations[n-1][0][idx][0] + (pw+spv if formations[n-1][1][idx] else -spv-sw), formations[n-1][0][idx][1])
+            subtitle = subtitle_manager.sectioned_subtitles_to_subtitles(words_li,False,sp,formations[n-1][1][idx])#True
             subtitle.audio = AudioFileClip("speech\\" + di[0][1:] + "_speech.wav")
             if emotion != "has_emotion_but_no_emoji_popup":
                 queued_emotions.append((splitted[0],emotion,et,et+subtitle.duration))
@@ -140,10 +139,12 @@ def create_title(title:str, create_audio:bool=True,create_speech_fast:bool=False
         color='aquamarine',
         stroke_width=5,
         stroke_color='black',
-        duration=tmp_a.duration
+        duration=tmp_a.duration,
     ).with_position("center","center")
     temp.audio=tmp_a
-    return temp
+    if get_setting("debug")==0:
+        tti_manager.generate_images_ani_single(title)
+    return CompositeVideoClip([temp,ImageClip("temp_images\\"+title+".png",duration=tmp_a.duration).resized((450,450)).with_position(("center",580))])
 
 def throw_direction(x1:float,y1:float,x2:float,y2:float)->tuple:
     if x2>x1:

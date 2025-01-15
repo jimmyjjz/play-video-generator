@@ -4,6 +4,7 @@ import re
 
 from sympy.physics.optics import lens_makers_formula
 
+import scene_manager
 from animateable import Animateable
 
 
@@ -24,7 +25,7 @@ def speech_to_text(audio_file_name: str, model_type: str="medium") -> list:
             words_and_stamps.append((word.start, word.end, word.word))
     return words_and_stamps
 
-def section_words(words_and_stamps: list, split_threshold: float = 0.75) -> list:
+def section_words(words_and_stamps: list, split_threshold: float = 1) -> list:#0.75
     """
     Section word and timestamps that are given are treated in a sentence-by-sentence fashion
     with each sentence sectioned into the biggest sections of text that are read under a given time.
@@ -49,7 +50,7 @@ def section_words(words_and_stamps: list, split_threshold: float = 0.75) -> list
 
 def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,pos:tuple=(0,0),left:bool=True)->tuple:
     #I have observed so far that it is one after another
-    m,mh=0,0
+    m,mh,w,h=0,0,scene_manager.sw,scene_manager.ph
     subtitle_list=[]
     s,p=[],[]
     t=0
@@ -62,27 +63,25 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,p
             font_size=50,
             color='yellow',
             horizontal_align='left'if left else'right',
-            duration=ss[1]-ss[0]
+            duration=ss[1]-ss[0],
+            size=(w,h)
         )
-        temp.size=(temp.size[0],temp.size[1]+40)
         if pulse:
-            b=bounce(temp.w, temp.h ,pos[0],pos[1],t)
+            b=bounce(w, h ,pos[0],pos[1],t)
             s.extend(b[0])
             p.extend(b[1])
-        mh=max(mh,temp.h)
-        m=max(m,temp.w)
-        t+=temp.duration
         subtitle_list.append(temp)
+        t+=temp.duration
     temp2 = Animateable(concatenate_videoclips(subtitle_list),pos[0],pos[1])
     for tu in s:
         temp2.queue_scale(tu[0],tu[1],tu[2],tu[3],tu[4])
     for tu in p:
         temp2.queue_move(tu[0],tu[1],tu[2],tu[3],tu[4])
     temp2.establish()
-    return temp2.clip,m,mh
+    return temp2.clip
 
 def bounce(w:int, h:int, x:int, y:int, t:int)->tuple:#bounce effect
-    a,b=0.02,8
+    a,b=0.02,10
     s,p=[],[]
     s.append((t, a, w, h, False))
     p.append((t, a, x, y, False))

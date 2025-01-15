@@ -1,6 +1,7 @@
 from moviepy import VideoFileClip, CompositeVideoClip, concatenate_videoclips
 import audio_manager,misc,scene_manager
 import script_check,time
+import tti_manager
 from settings_manager import get_setting
 
 #IGNORE YELLOW UNDERLINES
@@ -43,7 +44,8 @@ for e in sectioned_sequence:
 
 fg=concatenate_videoclips(scenes).with_position("center")
 bg_video=VideoFileClip("bgvid.mp4").without_audio()
-final_product=CompositeVideoClip([bg_video.subclipped(0,fg.duration),fg])
+mark=VideoFileClip("mark.mov",has_mask=True).with_position(("right",620))
+final_product=CompositeVideoClip([bg_video.subclipped(0,fg.duration),fg,mark])
 print("Making output video")
 final_product.write_videofile("outputted_video.mp4", preset='ultrafast', fps=50, threads=14)
 

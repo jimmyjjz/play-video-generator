@@ -1,6 +1,6 @@
 {
   "manual": false,
-  "debug": 0,
+  "debug": 1,
   "horizontal": 1920,
   "vertical": 1080,
   "create_speech_fast": true

@@ -45,6 +45,7 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
                     raise ValueError("A character that is not in scene has dialogue")
                 if s2[2] not in emotion_slot:
                     print(s2[2])
+                    print(s2)
                     raise ValueError("Invalid value in emotion slot")
             case 3:#c
                 if s[0]!='change':
