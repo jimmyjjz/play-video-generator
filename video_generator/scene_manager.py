@@ -5,7 +5,7 @@ from settings_manager import get_setting
 from animateable import Animateable
 
 fb,pw,ph,spv,tpaw,tpah=60,240,480,30,160,80#adjusment, from border, picture width, picture height, subtitle position value, throwable position adjustment width, throwable position adjustment height
-sw=600
+sw=800
 
 formations=(#True is left
     (((1920/2-pw/2,1080/2-ph/2),),(True,)),
@@ -142,9 +142,9 @@ def create_title(title:str, create_audio:bool=True,create_speech_fast:bool=False
         duration=tmp_a.duration,
     ).with_position("center","center")
     temp.audio=tmp_a
-    if get_setting("debug")==0:
-        tti_manager.generate_images_ani_single(title)
-    return CompositeVideoClip([temp,ImageClip("temp_images\\"+title+".png",duration=tmp_a.duration).resized((450,450)).with_position(("center",580))])
+    #if get_setting("debug") == 0:
+    #    tti_manager.generate_images_ani_single(title)#will Process finished with exit code -1073741819 (0xC0000005) for my current pc
+    return CompositeVideoClip([temp,ImageClip("temp_images\\"+title+".png",duration=tmp_a.duration).resized((430,430)).with_position(("center",625))])
 
 def throw_direction(x1:float,y1:float,x2:float,y2:float)->tuple:
     if x2>x1:

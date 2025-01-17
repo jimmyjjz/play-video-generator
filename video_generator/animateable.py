@@ -1,6 +1,4 @@
 from functools import partial
-from moviepy import VideoFileClip, ImageClip, CompositeVideoClip
-import settings_manager
 
 class Animateable(object):
     # Only VideoClip and its children are supported

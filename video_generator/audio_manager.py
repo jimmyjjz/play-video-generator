@@ -1,8 +1,6 @@
 from random import shuffle
-
 from TTS.api import TTS
 from tortoise.api_fast import TextToSpeech
-from tortoise.utils.audio import load_voice
 import torch, misc, torchaudio
 from tortoise.utils.audio import load_audio, load_voice, load_voices
 

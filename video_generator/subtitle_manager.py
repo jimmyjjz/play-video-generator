@@ -1,8 +1,6 @@
 from faster_whisper import WhisperModel
-from moviepy import TextClip, concatenate_videoclips, VideoClip
+from moviepy import TextClip, concatenate_videoclips
 import re
-
-from sympy.physics.optics import lens_makers_formula
 
 import scene_manager
 from animateable import Animateable
@@ -25,7 +23,7 @@ def speech_to_text(audio_file_name: str, model_type: str="medium") -> list:
             words_and_stamps.append((word.start, word.end, word.word))
     return words_and_stamps
 
-def section_words(words_and_stamps: list, split_threshold: float = 1) -> list:#0.75
+def section_words(words_and_stamps: list, split_threshold: float = 0.85) -> list:#0.75
     """
     Section word and timestamps that are given are treated in a sentence-by-sentence fashion
     with each sentence sectioned into the biggest sections of text that are read under a given time.

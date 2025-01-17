@@ -1,5 +1,5 @@
-from moviepy import VideoClip, ImageClip, concatenate_videoclips, TextClip, AudioFileClip
-import re, audio_manager
+from moviepy import VideoClip, ImageClip, concatenate_videoclips
+import audio_manager
 
 from settings_manager import get_setting
 

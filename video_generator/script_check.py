@@ -4,6 +4,8 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
     #DOUBLE CHECK TO SEE IF IT IS ALL GONE(THIS COMMENT MIGHT GET DELETED IN THE FUTURE)
     if "â€™" in script:
         raise ValueError("GPT apostrophe found in script")
+    if "Ã©" in script:
+        raise ValueError("Accented e found in script. Check for cafe with accented e in script.")
     splitted=script.split("|")
     characters=splitted[1].split(",")
     names=[]

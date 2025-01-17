@@ -6,8 +6,10 @@ from settings_manager import get_setting
 
 #IGNORE YELLOW UNDERLINES
 print("IF YOU HAVE NOT ALREADY, PROVIDE A BACKGROUND VIDEO AND NAME IT \"bgvid\"(must be mp4. mkv maybe supported soon).")
+print("IF PC DOES NOT HAVE ENOUGH MEMORY RUN image_maker.py first to generate the images(if you are using script.txt)."
+      "\nOtherwise, uncomment line 41 and 42 in main.py or line 145 or 146 in scene_manager.py(not both unless you want to generate each image twice)")
 if get_setting("debug")==1:
-    print("DEBUG 1\nNo speech files will be made.")
+    print("DEBUG 1\nNo speech or image files will be made.")
     with open("script.txt","r") as f:
         script=f.read()
 elif get_setting("debug")==2:
@@ -35,10 +37,16 @@ st=time.time()
 
 audio_manager.setup_voices_with_script(script)
 sectioned_sequence=misc.section_sequence(misc.script_to_sequence(script,get_setting("debug")==0,get_setting("create_speech_fast")))
+
+title=misc.script_to_title(script)
+#if get_setting("debug")==0:
+    #tti_manager.generate_images_ani_multi(tti_manager.grab_image_prompts(sectioned_sequence)+[title])#out of memory
+
 scene_manager.setup_characters(misc.script_to_characters(script))
-scenes=[scene_manager.create_title(misc.script_to_title(script),get_setting("debug")==0,get_setting("create_speech_fast"))]
+scenes=[scene_manager.create_title(title,get_setting("debug")==0,get_setting("create_speech_fast"))]
 
 for e in sectioned_sequence:
+    print("Creating scene ", e)
     scenes.append(scene_manager.create_scene(e))
     print("Created a scene", e)
 
@@ -51,3 +59,7 @@ final_product.write_videofile("outputted_video.mp4", preset='ultrafast', fps=50,
 
 print("Process took:",time.time()-st,"seconds")
 #12753.87342453003 seconds for 10 min 54 sec vid
+#15577.287912368774 seconds
+#Process finished with exit code -1073740791 (0xC0000409)
+#process debug 1 took 7475.502396345139 seconds
+#no pic generation 13min video took 10682.603286504745 seconds
