@@ -1,65 +1,174 @@
 from moviepy import VideoFileClip, CompositeVideoClip, concatenate_videoclips
-import audio_manager,misc,scene_manager
-import script_check,time
-import tti_manager
+import audio_manager,misc,scene_manager,script_check,time,gc,torch
 from settings_manager import get_setting
-
-#IGNORE YELLOW UNDERLINES
-print("IF YOU HAVE NOT ALREADY, PROVIDE A BACKGROUND VIDEO AND NAME IT \"bgvid\"(must be mp4. mkv maybe supported soon).")
-print("IF PC DOES NOT HAVE ENOUGH MEMORY RUN image_maker.py first to generate the images(if you are using script.txt)."
-      "\nOtherwise, uncomment line 41 and 42 in main.py or line 145 or 146 in scene_manager.py(not both unless you want to generate each image twice)")
-if get_setting("debug")==1:
-    print("DEBUG 1\nNo speech or image files will be made.")
-    with open("script.txt","r") as f:
-        script=f.read()
-elif get_setting("debug")==2:
-    print("DEBUG 2\n"+misc.generate_script_prompt("roblox story video", 1000))
-    script = input("Input script output from GPT:")
-else:
-    print("THE FOLLOWING MAY POPUP TWICE WHEN THE SETTING create_speech_fast IS TRUE. IGNORE THE SECOND POPUP.")
-    inp=input("1.Read (I)nput\n2.Read (F)ile\n3.(G)enerate prompt\nFile assumes that you have already added the GPT output into script.txt.\nEnter capital letter:")
-    if inp=="I":
-        print("NOTE: DOES NOT HAVE CHECK. PROCEED WITH THE")
-        print(misc.generate_script_prompt(input("Enter content:"), int(input("Enter min word count:"))))
-        script = input("Input script output from GPT:")
-    elif inp=="F":
-        print("Recommended to run script_check.py a few times before going further. Terminate the program if you want to do so.")
-        with open("script.txt", "r") as f:
-            script = f.read()
-            script_check.check_script(script)
-    elif inp=="G":
-        print(misc.generate_script_prompt(input("Enter content:"), int(input("Enter min word count:"))))
-        exit("Prompt given. Program terminated.")
+if __name__ == "__main__":
+    #IGNORE YELLOW UNDERLINES
+    print("IF YOU HAVE NOT ALREADY, PROVIDE A BACKGROUND VIDEO AND NAME IT \"bgvid#\"(must be mp4).")
+    print("RUN image_maker.py first. Set up script(#).txt(s) before running, can check with script_check.py.")
+    if get_setting("debug")==1:
+        print("DEBUG 1\nNo speech or image files will be made.")
+        with open("script.txt","r") as f:
+            script=f.read()
     else:
-        raise ValueError("INVALID INPUT")
+        inp=input("(1)Generate Video\n(2)Generate prompt\n\nEnter number:")
+        if inp=="1":
+            print("Recommended to run script_check.py a few times before going further. Terminate the program if you want to do so.")
+        elif inp=="2":
+            print(misc.generate_script_prompt(input("Enter content:"), int(input("Enter min word count:"))))
+            exit("Prompt given. Program terminated.")
+        else:
+            raise ValueError("INVALID INPUT")
 
-st=time.time()
+    for k in range(1,get_setting("production_count")+1):# 1. "script" 2+ "script#"
+        print(f"script {k}")
+        if k==1:
+            with open("script.txt", "r") as f:
+                script = f.read()
+                script_check.check_script(script)
+        elif k>1:
+            with open("script"+str(k)+".txt", "r") as f:
+                script = f.read()
+                script_check.check_script(script)
+        else:
+            raise ValueError("INVALID product_count setting. Might because it is 0 or a negative number.")
 
-audio_manager.setup_voices_with_script(script)
-sectioned_sequence=misc.section_sequence(misc.script_to_sequence(script,get_setting("debug")==0,get_setting("create_speech_fast")))
+        st=time.time()
 
-title=misc.script_to_title(script)
-#if get_setting("debug")==0:
-    #tti_manager.generate_images_ani_multi(tti_manager.grab_image_prompts(sectioned_sequence)+[title])#out of memory
+        audio_manager.setup_voices_with_script(script)
+        sectioned_sequence=misc.section_sequence(misc.script_to_sequence(script,get_setting("produce_dialogue"),get_setting("create_speech_fast")))#get_setting("debug")==0
 
-scene_manager.setup_characters(misc.script_to_characters(script))
-scenes=[scene_manager.create_title(title,get_setting("debug")==0,get_setting("create_speech_fast"))]
+        title=misc.script_to_title(script)
 
-for e in sectioned_sequence:
-    print("Creating scene ", e)
-    scenes.append(scene_manager.create_scene(e))
-    print("Created a scene", e)
+        scene_manager.setup_characters(misc.script_to_characters(script))
+        if get_setting("title_portion"):
+            scenes=[scene_manager.create_title(title,get_setting("debug")==0,get_setting("create_speech_fast"))]
+        else:
+            scenes = []
 
-fg=concatenate_videoclips(scenes).with_position("center")
-bg_video=VideoFileClip("bgvid.mp4").without_audio()
-mark=VideoFileClip("mark.mov",has_mask=True).with_position(("right",620))
-final_product=CompositeVideoClip([bg_video.subclipped(0,fg.duration),fg,mark])
-print("Making output video")
-final_product.write_videofile("outputted_video.mp4", preset='ultrafast', fps=50, threads=14)
+        misc.clear_processes()
 
-print("Process took:",time.time()-st,"seconds")
-#12753.87342453003 seconds for 10 min 54 sec vid
-#15577.287912368774 seconds
-#Process finished with exit code -1073740791 (0xC0000409)
-#process debug 1 took 7475.502396345139 seconds
-#no pic generation 13min video took 10682.603286504745 seconds
+        if get_setting("split_and_merge") == 2:#2 produce each video individually and merge them at the end. Takes the longest.
+            bg_video = VideoFileClip(f"bgvid{k}.mp4").without_audio()
+            mark = VideoFileClip("mark.mov", has_mask=True).with_position(("right", 620))
+            j,accu=0,0
+            for e in sectioned_sequence:
+                print("Creating scene ", e)
+                tmp=scene_manager.create_scene(e)
+                gc.collect()
+                tmp=CompositeVideoClip([bg_video.subclipped(accu,accu+tmp.duration),tmp])
+                accu+=tmp.duration
+                tmp.write_videofile("temp_vids\\output_"+str(j)+".mp4", preset='ultrafast', fps=50, threads=18)
+                print("Created a scene", e)
+
+                tmp.close()
+                print("Deleting unneeded elements")
+                del tmp
+                print("Executing garbage collection")
+                gc.collect()
+                with torch.no_grad():
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
+                j+=1
+            scenes=[]
+            for i in range(j):
+                scenes.append(VideoFileClip("temp_vids\\output_"+str(i)+".mp4"))
+            final_product = CompositeVideoClip([concatenate_videoclips(scenes),mark])
+
+        elif get_setting("split_and_merge")==1:#1 produce 3 thirds and merge them at the end. Takes the second longest.
+            if len(sectioned_sequence)<3:
+                raise ValueError("Too less scenes to split and merge")
+
+            bg_video = VideoFileClip(f"bgvid{k}.mp4").without_audio()
+            mark = VideoFileClip("mark.mov", has_mask=True).with_position(("right", 620))
+            print("First half")
+            j=0#(2*len(sectioned_sequence)//3)-len(sectioned_sequence)//3
+            for i in range(len(sectioned_sequence)//3):
+                print("Creating scene ", sectioned_sequence[j])
+                scenes.append(scene_manager.create_scene(sectioned_sequence[j]))
+                gc.collect()
+                print("Created a scene", sectioned_sequence[j])
+                j+=1
+            fg = concatenate_videoclips(scenes).with_position("center")
+            first_half=CompositeVideoClip([bg_video.subclipped(0,fg.duration),fg,mark])
+            first_half.write_videofile("temp_vids\\first_half.mp4", preset='ultrafast', fps=50, threads=18)
+            fg_duration=fg.duration
+
+            first_half.close()
+            print("Deleting unneeded elements")
+
+            for z in range(len(scenes)):
+                scenes[z]=None
+            fg,first_half=None,None
+
+            del fg,scenes,first_half
+            misc.clear_processes()
+
+            print("Second half")
+            scenes=[]
+            for i in range((2*len(sectioned_sequence)//3)-len(sectioned_sequence)//3):
+                print("Creating scene ", sectioned_sequence[j])
+                scenes.append(scene_manager.create_scene(sectioned_sequence[j]))
+                gc.collect()
+                print("Created a scene", sectioned_sequence[j])
+                j+=1
+            fg2 = concatenate_videoclips(scenes).with_position("center")
+            second_half = CompositeVideoClip([bg_video.subclipped(fg_duration, fg_duration+fg2.duration), fg2])
+            second_half.write_videofile("temp_vids\\second_half.mp4", preset='ultrafast', fps=50, threads=18)
+            fg2_duration=fg2.duration
+
+            second_half.close()
+            print("Deleting unneeded elements")
+
+            for z in range(len(scenes)):
+                scenes[z]=None
+            fg2, second_half = None, None
+
+            del fg2,scenes,second_half
+            misc.clear_processes()
+
+            #fg_duration,fg2_duration=VideoFileClip("temp_vids\\first_half.mp4").duration,VideoFileClip("temp_vids\\second_half.mp4").duration
+            #gc.collect()
+
+            print("Third half")
+            scenes = []
+            for i in range(len(sectioned_sequence)-(2 * len(sectioned_sequence) // 3)):
+                print("Creating scene ", sectioned_sequence[j])
+                scenes.append(scene_manager.create_scene(sectioned_sequence[j]))
+                gc.collect()
+                print("Created a scene", sectioned_sequence[j])
+                j += 1
+            fg3 = concatenate_videoclips(scenes).with_position("center")
+            third_half = CompositeVideoClip([bg_video.subclipped(fg_duration+fg2_duration, fg_duration+fg2_duration+fg3.duration), fg3])
+            third_half.write_videofile("temp_vids\\third_half.mp4", preset='ultrafast', fps=50, threads=18)
+
+            third_half.close()
+            print("Deleting unneeded elements")
+
+            for z in range(len(scenes)):
+                scenes[z]=None
+            fg3, third_half = None, None
+
+            del fg3,scenes,third_half
+            misc.clear_processes()
+
+            print("Making output video")
+            final_product=concatenate_videoclips([VideoFileClip("temp_vids\\first_half.mp4"),VideoFileClip("temp_vids\\second_half.mp4"),VideoFileClip("temp_vids\\third_half.mp4")])
+        else:#Produces all in one go. The fastest.
+            for e in sectioned_sequence:
+                print("Creating scene ", e)
+                scenes.append(scene_manager.create_scene(e))
+                gc.collect()
+                print("Created a scene", e)
+
+            fg = concatenate_videoclips(scenes).with_position("center")
+            bg_video = VideoFileClip(f"bgvid{k}.mp4").without_audio()
+            mark = VideoFileClip("mark.mov", has_mask=True).with_position(("right", 620))
+            final_product = CompositeVideoClip([bg_video.subclipped(0, fg.duration), fg, mark])
+
+        print("Making output video")
+        final_product.write_videofile("outputted_video"+str(k)+".mp4", preset='ultrafast', fps=50, threads=18)
+        print("Process took:",time.time()-st,"seconds")
+        final_product.close()
+        final_product=None
+        del final_product
+        misc.clear_processes()

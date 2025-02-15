@@ -1,3 +1,5 @@
+import gc
+
 from moviepy import ImageClip, concatenate_videoclips, TextClip, AudioFileClip, CompositeVideoClip
 import audio_manager, subtitle_manager, misc, random
 import tti_manager
@@ -37,6 +39,7 @@ def create_scene(seq:list):
         raise ValueError("seq does not contain enough elements")
     scene_data=seq[0][1:].split("-")
     mapped_positions,queued_emotions,et,names,title={},[],0,scene_data[1].split(","),create_title(scene_data[2],get_setting("debug")==0,get_setting("create_speech_fast"))
+    gc.collect()
     accumulant=[title]
     et+=accumulant[0].duration
     for i in range(len(names)):
@@ -47,16 +50,18 @@ def create_scene(seq:list):
     for i in range(1, len(seq)):
         if seq[i][0] == 'd':
             di = seq[i].split("###<>")
-            words_li = subtitle_manager.section_words(subtitle_manager.speech_to_text("speech\\" + di[0][1:] + "_speech.wav",'large' if get_setting("debug")==0 else 'medium'))
+            words_li = subtitle_manager.section_words(subtitle_manager.speech_to_text("speech\\" + di[0][1:] + "_speech.wav",'large' if get_setting("whisper_large") else 'medium'))
             splitted=di[1].split(":")
             emotion,idx=splitted[2],mapped_positions[splitted[0]]
             sp=(formations[n-1][0][idx][0] + (pw+spv if formations[n-1][1][idx] else -spv-sw), formations[n-1][0][idx][1])
             subtitle = subtitle_manager.sectioned_subtitles_to_subtitles(words_li,False,sp,formations[n-1][1][idx])#True
+            gc.collect()
             subtitle.audio = AudioFileClip("speech\\" + di[0][1:] + "_speech.wav")
-            if emotion != "has_emotion_but_no_emoji_popup":
+            if emotion != "no_emoji_popup":
                 queued_emotions.append((splitted[0],emotion,et,et+subtitle.duration))
             et+=subtitle.duration
             accumulant.append(CompositeVideoClip([misc.create_transparent_image(subtitle.duration), subtitle]))
+            #accumulant.append(subtitle)
         elif seq[i][0] == 't':
             details = seq[i][1:].split("-")
             if details[1] == 'slow':
@@ -79,11 +84,13 @@ def create_scene(seq:list):
             throwable.establish()
             et+=spd
             accumulant.append(CompositeVideoClip([misc.create_transparent_image(spd), throwable.clip]))
+            #accumulant.append(throwable.clip)
         else:
             raise ValueError("invalid sequence element")
         accumulant.append(misc.create_transparent_image(0.5))  # delay
         et+=0.5
     accumulated=concatenate_videoclips(accumulant)
+    #accumulated = concatenate_videoclips(CompositeVideoClip([misc.create_transparent_image(et)]+accumulant))
     composition=[accumulated]
     for j in range(n):
         aic=ImageClip("assets\\" + characters[names[j]] + ".png", duration=accumulated.duration)
@@ -96,16 +103,16 @@ def create_scene(seq:list):
             font='verdana',
             text=names[j],
             font_size=40,
-            size=(pw, 50),
+            size=(pw*3, 50),
             color='cornflowerblue' if characters[names[j]] in male else 'orchid',
             stroke_width=5,
             stroke_color='black',
             duration=accumulated.duration
-        ).with_position(('center','bottom'))])
-        a=Animateable(aic, formations[n-1][0][j][0], formations[n-1][0][j][1])
-        a.establish()
-        a.clip.start=title.duration
-        composition.append(a.clip)
+        ).with_position(('center','bottom'))]).with_position((formations[n-1][0][j][0], formations[n-1][0][j][1]))
+        #a=Animateable(aic, formations[n-1][0][j][0], formations[n-1][0][j][1])
+        #a.establish()
+        aic.start=title.duration
+        composition.append(aic)
     return CompositeVideoClip(composition)
 
 def setup_characters(ch:list)->None:

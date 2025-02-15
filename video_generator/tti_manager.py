@@ -44,8 +44,3 @@ def generate_images_ani_multi(prompts:list)->None:
     images = pipe(prompts, num_inference_steps=25, width=512, height=512).images
     for i,img in enumerate(images):
         img.save(f"temp_images\\{prompts[i]}.png")
-
-#generate_images(grab_image_prompts([["0-0-(extremely intricate:1.3), (realistic), professional photograph of a woman, 8k, ultra detailed face, high quality skin detail, sharp focus, dramatic, award winning, cinematic lighting, (film grain, blurry background, blurry foreground, bokeh, depth of field, motion blur:1.3), best quality, ultra-detailed, beautiful lighting, modelshoot, mood-accurate pose, full body portrait, wearing clothes in a Neo-Imperial fashion, (realistic, accurate, well-fitting clothing), beautiful eyes, accurate body proportions, (accurate) skin color, realistic skin color for race, accurate skin color for ethnicity:1.7), symmetrical eyes, matching pupils, ((Realistic) breast, hips, and waists sizes), <lora:LowRA:0.6>, ((masterpiece))"]]))
-#generate_images(grab_image_prompts([["0-0-apple"],["0-0-horse"],["0-0-cheese"],["0-0-dark basement"],["0-0-beach ball"]]))
-#generate_images_ani_single("robbing a bank")
-#generate_images_ani_multi(["apple","banana"])

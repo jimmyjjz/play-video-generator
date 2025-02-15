@@ -6,10 +6,14 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
         raise ValueError("GPT apostrophe found in script")
     if "Ã©" in script:
         raise ValueError("Accented e found in script. Check for cafe with accented e in script.")
+    if 'â€”' in script:
+        raise ValueError("Weird hyphen-like thing found in script. Check for \"—\"")
+    if 'â€¦' in script:
+        raise ValueError("... found in script. Check for \"…\"")
     splitted=script.split("|")
     characters=splitted[1].split(",")
     names=[]
-    emotion_slot=['thinking', 'ok', 'sad', 'angry', 'has_emotion_but_no_emoji_popup']
+    emotion_slot=['thinking', 'ok', 'sad', 'angry', 'no_emoji_popup']
     throwables=['attack','mail','tree']
     throw_speeds=['fast','slow']
     fc,mc=0,0
@@ -51,9 +55,14 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
                     raise ValueError("Invalid value in emotion slot")
             case 3:#c
                 if s[0]!='change':
+                    print(s[0])
                     raise ValueError("First element of a scene change action is not 'change'")
                 s2=s[1].split(',')
                 characters_in_scene = []
+                tmp=set(characters_in_scene)
+                if len(tmp)>len(characters_in_scene):
+                    print(characters_in_scene)
+                    raise ValueError("Duplicate characters in a scene.")
                 for c in s2:
                     if c not in names:
                         print(c)
@@ -66,6 +75,7 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
             case 4:#t
                 if s[0] not in throwables:
                     print(s[0])
+                    print(s)
                     raise ValueError("Invalid throwable")
                 if s[1] not in throw_speeds:
                     print(s[1])
@@ -78,6 +88,7 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
                     raise ValueError("A character throwing a throwable is not in character list")
                 if s[2] not in characters_in_scene:
                     print(s[2])
+                    print(s)
                     raise ValueError("A character that is not in scene is throwing a throwable")
                 if s[3] not in characters_in_scene:
                     print(s[3])
@@ -87,12 +98,13 @@ def check_script(script:str):#not entirely accurate name as it replaces GPT ' wi
                 raise ValueError("Invalid sequence element")
     print("Script passes the checks.")
 
-def check_file_script(replace_GPT_aposthrophe:bool=True):
+def check_file_script(replace_gpt_aposthrophe:bool=True):
     with open("script.txt", 'r') as f:
         script = f.read()
-    if replace_GPT_aposthrophe:
+    if replace_gpt_aposthrophe:
         with open("script.txt", 'w') as f:
             f.write(script.replace("â€™","'"))
     check_script(script)
 
-check_file_script()
+if __name__ == "__main__":
+    check_file_script()

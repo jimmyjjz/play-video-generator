@@ -25,10 +25,11 @@ def default_settings()->None:
     global data
     data={
         "manual":False,
-        "debug":0,#change to 0 when project not in development
+        "debug":0,
         "horizontal":1080,
         "vertical":1920,
-        "create_speech_fast":False
+        "create_speech_fast":True,
+        "split_and_merge": 0
     }
 
 # ==================================================TESTING==================================================

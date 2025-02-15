@@ -1,13 +1,12 @@
 from moviepy import VideoClip, ImageClip, concatenate_videoclips
-import audio_manager
+import audio_manager,gc,torch
 
 from settings_manager import get_setting
-
 
 def generate_script_prompt(content:str, min_word_count:int)->str:
     return f'Generate a {content} script. Format into sentences that are separated with "|".\
            Include only dialogue, "throwing" action, and change scene.\
-           Dialogue is in this format:<name(must be a character)>:<dialogue>:<emotion>. List of emotions: thinking, ok, sad, angry, has_emotion_but_no_emoji_popup. Use has_emotion_but_no_emoji_popup 90% of the time.\
+           Dialogue is in this format:<name(must be a character)>:<dialogue>:<emotion>. List of emotions: thinking, ok, sad, angry, no_emoji_popup. Use no_emoji_popup 90% of the time.\
            Throwing action in this format: <thing>-<speed>-<thrower name(must be a character)>-<target name(must be a character)>. \
            List of things that can be thrown: mail, attack, tree. List of throwing speeds: slow, fast. \
            Change scene action is in the following format: <"change" the word>-<people entering(max 4) separated with commas\
@@ -80,6 +79,13 @@ def create_transparent_image(duration:float):#1920x1080
 def cpos_to_rpos(size:tuple, cpos:tuple):#center pos to real pos
     #size w,h. cpos x,y
     return cpos[0]-size[0]/2,cpos[1]-size[1]/2
+
+def clear_processes():
+    print("Clearing cache and collecting garbage.")
+    gc.collect()
+    with torch.no_grad():
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
 
 #========================= old prompt generators =========================
 def generate_script_prompt_old(type_of_script:str, script_approx_length:int, topic:str, extra:str="")->str:

@@ -1,3 +1,5 @@
+import gc,torch
+
 from faster_whisper import WhisperModel
 from moviepy import TextClip, concatenate_videoclips
 import re
@@ -21,6 +23,10 @@ def speech_to_text(audio_file_name: str, model_type: str="medium") -> list:
     for line in slots:
         for word in line.words:
             words_and_stamps.append((word.start, word.end, word.word))
+    del model
+    gc.collect()
+    with torch.no_grad():
+        torch.cuda.empty_cache()
     return words_and_stamps
 
 def section_words(words_and_stamps: list, split_threshold: float = 0.85) -> list:#0.75
@@ -46,7 +52,7 @@ def section_words(words_and_stamps: list, split_threshold: float = 0.85) -> list
         sectioned_subtitles.append((s, e, "".join(words).lstrip()))
     return sectioned_subtitles
 
-def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,pos:tuple=(0,0),left:bool=True)->tuple:
+def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,pos:tuple=(0,0),left:bool=True):
     #I have observed so far that it is one after another
     m,mh,w,h=0,0,scene_manager.sw,scene_manager.ph
     subtitle_list=[]
@@ -62,21 +68,25 @@ def sectioned_subtitles_to_subtitles(sectioned_subtitles:list,pulse:bool=False,p
             color='yellow',
             horizontal_align='left'if left else'right',
             duration=ss[1]-ss[0],
+            #method="caption",
             size=(w,h)
         )
-        if pulse:
-            b=bounce(w, h ,pos[0],pos[1],t)
-            s.extend(b[0])
-            p.extend(b[1])
+        #if pulse:
+        #    b=bounce(w, h ,pos[0],pos[1],t)
+        #    s.extend(b[0])
+        #    p.extend(b[1])
         subtitle_list.append(temp)
-        t+=temp.duration
+        #t+=temp.duration
+    '''
     temp2 = Animateable(concatenate_videoclips(subtitle_list),pos[0],pos[1])
     for tu in s:
         temp2.queue_scale(tu[0],tu[1],tu[2],tu[3],tu[4])
     for tu in p:
         temp2.queue_move(tu[0],tu[1],tu[2],tu[3],tu[4])
     temp2.establish()
-    return temp2.clip
+    '''
+    #return temp2.clip
+    return concatenate_videoclips(subtitle_list).with_position((pos[0],pos[1]))
 
 def bounce(w:int, h:int, x:int, y:int, t:int)->tuple:#bounce effect
     a,b=0.02,10
