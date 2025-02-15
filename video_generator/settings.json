@@ -1,0 +1,12 @@
+{
+  "manual": false,
+  "debug": 0,
+  "horizontal": 1920,
+  "vertical": 1080,
+  "create_speech_fast": true,
+  "split_and_merge": 0,
+  "production_count": 1,
+  "produce_dialogue": true,
+  "title_portion": true,
+  "whisper_large": true
+}

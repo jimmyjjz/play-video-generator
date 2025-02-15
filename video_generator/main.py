@@ -1,85 +1,174 @@
-#from moviepy import VideoFileClip,TextClip
-from moviepy import *
-#import mutagen
-from mutagen.wave import WAVE
-import pyttsx3
-import random
-import math
-#1080x1920
-#using 360x640 for testing
-#340x570 clips size(centered
-"""
-Prompt to give chatgpt 
+from moviepy import VideoFileClip, CompositeVideoClip, concatenate_videoclips
+import audio_manager,misc,scene_manager,script_check,time,gc,torch
+from settings_manager import get_setting
+if __name__ == "__main__":
+    #IGNORE YELLOW UNDERLINES
+    print("IF YOU HAVE NOT ALREADY, PROVIDE A BACKGROUND VIDEO AND NAME IT \"bgvid#\"(must be mp4).")
+    print("RUN image_maker.py first. Set up script(#).txt(s) before running, can check with script_check.py.")
+    if get_setting("debug")==1:
+        print("DEBUG 1\nNo speech or image files will be made.")
+        with open("script.txt","r") as f:
+            script=f.read()
+    else:
+        inp=input("(1)Generate Video\n(2)Generate prompt\n\nEnter number:")
+        if inp=="1":
+            print("Recommended to run script_check.py a few times before going further. Terminate the program if you want to do so.")
+        elif inp=="2":
+            print(misc.generate_script_prompt(input("Enter content:"), int(input("Enter min word count:"))))
+            exit("Prompt given. Program terminated.")
+        else:
+            raise ValueError("INVALID INPUT")
 
-Note: Can use gpt api.
+    for k in range(1,get_setting("production_count")+1):# 1. "script" 2+ "script#"
+        print(f"script {k}")
+        if k==1:
+            with open("script.txt", "r") as f:
+                script = f.read()
+                script_check.check_script(script)
+        elif k>1:
+            with open("script"+str(k)+".txt", "r") as f:
+                script = f.read()
+                script_check.check_script(script)
+        else:
+            raise ValueError("INVALID product_count setting. Might because it is 0 or a negative number.")
 
-Generate an review of the anime "<insert name>" 
-completed with a rating and a final note 
-that takes 20secs to read.
+        st=time.time()
 
-"""
-#theme theater with popsicle sticks characters(lit up by spotlight and lifted up while talking)
-#while talking they should also be moving left to right(like an idle animation)
-#would be cool if the stick spun around and swapped to another picture on stick as to show different emotion
+        audio_manager.setup_voices_with_script(script)
+        sectioned_sequence=misc.section_sequence(misc.script_to_sequence(script,get_setting("produce_dialogue"),get_setting("create_speech_fast")))#get_setting("debug")==0
 
-print("Creating the audio and synced subtitles...")
-audio_clips=[]
-subtitle_clips=[]
-total_length=0
-with open("words_test.txt","r") as text:
-    sentences=text.read().strip().split("\n")
-    sentences=[l + "." for l in sentences]
-    engine = pyttsx3.init()
-    for i in range(len(sentences)):
-        print("Working on:", sentences[i])
-        sections=sentences[i].split(" ")
-        for j in range(len(sections)):
-            #engine.save_to_file(sections[j], str(i)+"_"+str(j)+'.wav')
-            #engine.runAndWait()
-            d=WAVE(str(i)+"_"+str(j)+'.wav').info.length
-            subtitle_clips.append(TextClip(
-                                font='verdana',
-                                text=sections[j].replace(".",""),#sentences[i][:len(sentences[i])-1],
-                                font_size=40,
-                                color='yellow',
-                                duration=d#,
-                                #bg_color='yellow'
-                                ))#maybe make it so it is every 1,2,3 words and not whole sentence
-            #
-            total_length+=d
-            audio_clips.append(AudioFileClip(str(i)+"_"+str(j)+'.wav'))
-    #^will error if empty line exists
+        title=misc.script_to_title(script)
 
-    print("Completed\nTaking full video apart...")
-    full_video = VideoFileClip("test_video.mkv")
-    clips = []
-    for i in range(0, math.ceil(total_length) if math.ceil(total_length)%2 else math.ceil(total_length)+1, 2):#temp
-        clips.append(full_video.subclipped(i, i + 2))
+        scene_manager.setup_characters(misc.script_to_characters(script))
+        if get_setting("title_portion"):
+            scenes=[scene_manager.create_title(title,get_setting("debug")==0,get_setting("create_speech_fast"))]
+        else:
+            scenes = []
 
-    print("Completed\nShuffling and concatenating these clips...")
-    random.shuffle(clips)
-    video = concatenate_videoclips(clips)
+        misc.clear_processes()
 
-    print("Completed\nResizing video...")
-    #video=video.resized((1080,1920))#crop yeah pls
-    print("Completed\nCombining video and audio components...")
-    audio = concatenate_audioclips(audio_clips)
-    video.audio = CompositeAudioClip([audio])
-    subtitle = concatenate_videoclips(subtitle_clips).with_position('center','center')#will error if goes out of bounds
-    video=video.with_position('center','center')
-    bg=ImageClip("black_background.png", duration=video.duration)
-    krimdus=ImageClip("krimdus_emotion_package\krimdus_neutral.png", duration=video.duration)#/
-    krimdus = krimdus.with_position((460,1020))
-    final_product = CompositeVideoClip([bg, video, subtitle, krimdus]).with_mask()
+        if get_setting("split_and_merge") == 2:#2 produce each video individually and merge them at the end. Takes the longest.
+            bg_video = VideoFileClip(f"bgvid{k}.mp4").without_audio()
+            mark = VideoFileClip("mark.mov", has_mask=True).with_position(("right", 620))
+            j,accu=0,0
+            for e in sectioned_sequence:
+                print("Creating scene ", e)
+                tmp=scene_manager.create_scene(e)
+                gc.collect()
+                tmp=CompositeVideoClip([bg_video.subclipped(accu,accu+tmp.duration),tmp])
+                accu+=tmp.duration
+                tmp.write_videofile("temp_vids\\output_"+str(j)+".mp4", preset='ultrafast', fps=50, threads=18)
+                print("Created a scene", e)
 
-    print("Completed\nOutputting...")
-    final_product.write_videofile("outputted_final_product.mp4", preset='ultrafast')
-    #video.write_videofile("outputted_video_portion.mp4", preset='ultrafast', codec="libx264")
-    #audio.write_audiofile("outputted_product_audio.mp3")
-    final_product.save_frame("preview.png")
+                tmp.close()
+                print("Deleting unneeded elements")
+                del tmp
+                print("Executing garbage collection")
+                gc.collect()
+                with torch.no_grad():
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
+                j+=1
+            scenes=[]
+            for i in range(j):
+                scenes.append(VideoFileClip("temp_vids\\output_"+str(i)+".mp4"))
+            final_product = CompositeVideoClip([concatenate_videoclips(scenes),mark])
 
-    print("Program finished")
+        elif get_setting("split_and_merge")==1:#1 produce 3 thirds and merge them at the end. Takes the second longest.
+            if len(sectioned_sequence)<3:
+                raise ValueError("Too less scenes to split and merge")
 
-#the "maybe to-do":
-#"puppets" raising signs with pictures
-#() enclosed text not spoken but shown in subtitles
+            bg_video = VideoFileClip(f"bgvid{k}.mp4").without_audio()
+            mark = VideoFileClip("mark.mov", has_mask=True).with_position(("right", 620))
+            print("First half")
+            j=0#(2*len(sectioned_sequence)//3)-len(sectioned_sequence)//3
+            for i in range(len(sectioned_sequence)//3):
+                print("Creating scene ", sectioned_sequence[j])
+                scenes.append(scene_manager.create_scene(sectioned_sequence[j]))
+                gc.collect()
+                print("Created a scene", sectioned_sequence[j])
+                j+=1
+            fg = concatenate_videoclips(scenes).with_position("center")
+            first_half=CompositeVideoClip([bg_video.subclipped(0,fg.duration),fg,mark])
+            first_half.write_videofile("temp_vids\\first_half.mp4", preset='ultrafast', fps=50, threads=18)
+            fg_duration=fg.duration
+
+            first_half.close()
+            print("Deleting unneeded elements")
+
+            for z in range(len(scenes)):
+                scenes[z]=None
+            fg,first_half=None,None
+
+            del fg,scenes,first_half
+            misc.clear_processes()
+
+            print("Second half")
+            scenes=[]
+            for i in range((2*len(sectioned_sequence)//3)-len(sectioned_sequence)//3):
+                print("Creating scene ", sectioned_sequence[j])
+                scenes.append(scene_manager.create_scene(sectioned_sequence[j]))
+                gc.collect()
+                print("Created a scene", sectioned_sequence[j])
+                j+=1
+            fg2 = concatenate_videoclips(scenes).with_position("center")
+            second_half = CompositeVideoClip([bg_video.subclipped(fg_duration, fg_duration+fg2.duration), fg2])
+            second_half.write_videofile("temp_vids\\second_half.mp4", preset='ultrafast', fps=50, threads=18)
+            fg2_duration=fg2.duration
+
+            second_half.close()
+            print("Deleting unneeded elements")
+
+            for z in range(len(scenes)):
+                scenes[z]=None
+            fg2, second_half = None, None
+
+            del fg2,scenes,second_half
+            misc.clear_processes()
+
+            #fg_duration,fg2_duration=VideoFileClip("temp_vids\\first_half.mp4").duration,VideoFileClip("temp_vids\\second_half.mp4").duration
+            #gc.collect()
+
+            print("Third half")
+            scenes = []
+            for i in range(len(sectioned_sequence)-(2 * len(sectioned_sequence) // 3)):
+                print("Creating scene ", sectioned_sequence[j])
+                scenes.append(scene_manager.create_scene(sectioned_sequence[j]))
+                gc.collect()
+                print("Created a scene", sectioned_sequence[j])
+                j += 1
+            fg3 = concatenate_videoclips(scenes).with_position("center")
+            third_half = CompositeVideoClip([bg_video.subclipped(fg_duration+fg2_duration, fg_duration+fg2_duration+fg3.duration), fg3])
+            third_half.write_videofile("temp_vids\\third_half.mp4", preset='ultrafast', fps=50, threads=18)
+
+            third_half.close()
+            print("Deleting unneeded elements")
+
+            for z in range(len(scenes)):
+                scenes[z]=None
+            fg3, third_half = None, None
+
+            del fg3,scenes,third_half
+            misc.clear_processes()
+
+            print("Making output video")
+            final_product=concatenate_videoclips([VideoFileClip("temp_vids\\first_half.mp4"),VideoFileClip("temp_vids\\second_half.mp4"),VideoFileClip("temp_vids\\third_half.mp4")])
+        else:#Produces all in one go. The fastest.
+            for e in sectioned_sequence:
+                print("Creating scene ", e)
+                scenes.append(scene_manager.create_scene(e))
+                gc.collect()
+                print("Created a scene", e)
+
+            fg = concatenate_videoclips(scenes).with_position("center")
+            bg_video = VideoFileClip(f"bgvid{k}.mp4").without_audio()
+            mark = VideoFileClip("mark.mov", has_mask=True).with_position(("right", 620))
+            final_product = CompositeVideoClip([bg_video.subclipped(0, fg.duration), fg, mark])
+
+        print("Making output video")
+        final_product.write_videofile("outputted_video"+str(k)+".mp4", preset='ultrafast', fps=50, threads=18)
+        print("Process took:",time.time()-st,"seconds")
+        final_product.close()
+        final_product=None
+        del final_product
+        misc.clear_processes()
