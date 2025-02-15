@@ -1,4 +1,4 @@
-# play generator
+# Play Generator
 A play generator that is sizably powered by AI.
 
 Needed to run:
