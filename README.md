@@ -6,6 +6,7 @@ Uses a variety of different AI models to generate individual components of a pla
 - Text to speech(Tortoise)
 - Text to image(stable-diffusion)
 - Speech to text(whisper)
+
 which is compiled into a video using Moviepy.
 
 Now utilizes PyTorch(use to utilize Tensorflow). 
