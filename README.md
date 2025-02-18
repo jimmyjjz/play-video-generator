@@ -16,6 +16,7 @@ Needed to run:
 - pytorch 2.5.1
 - diffuser 0.32.1
 - faster_whisper 1.1.0
+
 and their dependencies
 - adequately sized mp4(s) named bgvid# #=1,2,3...
 - enough vram(~4-5gb for 15min video)
@@ -26,7 +27,10 @@ Customizability:
 - switching ai models for different tasks
 - visual images can be changed
 - video settings
+
 ...
+
+
 
 Videos made by this generator can be found on:
 https://www.youtube.com/@Robloxuha
